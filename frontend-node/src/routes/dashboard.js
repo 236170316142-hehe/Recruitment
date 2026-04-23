@@ -52,7 +52,8 @@ async function addUserProfile(req, res, next) {
 
 router.get("/login", (req, res) => {
   res.render("pages/login", {
-    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID
+    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+    BACKEND_API_BASE: process.env.BACKEND_API_BASE
   });
 });
 
