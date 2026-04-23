@@ -15,7 +15,10 @@ def get_client() -> AsyncIOMotorClient:
     if mongo.client is None:
         mongo.client = AsyncIOMotorClient(
             settings.mongo_uri,
-            tlsCAFile=certifi.where()
+            tlsCAFile=certifi.where(),
+            connectTimeoutMS=30000,
+            socketTimeoutMS=None,
+            retryWrites=True
         )
     return mongo.client
 
