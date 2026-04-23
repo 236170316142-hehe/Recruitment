@@ -9,13 +9,25 @@ from app.core.config import settings
 
 class GroqRanker:
     def __init__(self):
-        self.client = AsyncGroq(api_key=settings.groq_api_key)
         self.model = settings.groq_model
+        self._client = None
 
-    async def classify_document(self, text: str) -> bool:
-        """Use LLM to determine if document is a professional resume."""
-        if not settings.groq_api_key or not text:
-            return True
+    @property
+    def client(self):
+        if self._client is None:
+            if not settings.groq_api_key:
+                return None
+            try:
+                # We initialize without 'proxies' to avoid version issues on Render
+                self._client = AsyncGroq(api_key=settings.groq_api_key)
+            except Exception as e:
+                print(f"CRITICAL: Failed to initialize Groq client: {e}")
+                return None
+        return self._client
+
+        client = self.client
+        if not client:
+            return True # Fallback if client failed
 
         try:
             # We use a faster/cheaper model for simple classification
@@ -27,7 +39,7 @@ TEXT SNIPPET:
 
 Return ONLY a JSON object: {{"is_resume": boolean, "reason": "string"}}"""
 
-            completion = await self.client.chat.completions.create(
+            completion = await client.chat.completions.create(
                 model="llama-3.1-8b-instant",
                 messages=[{"role": "system", "content": "You are a document classifier."},
                           {"role": "user", "content": prompt}],
@@ -86,7 +98,36 @@ Return ONLY a valid JSON object with:
 - weaknesses: list of essential missing items.
 - skills: list of technical keywords."""
 
-                    completion = await self.client.chat.completions.create(
+                client = self.client
+                if not client:
+                    return {"resume_id": resume_id, "score": 0, "confidence": "LOW", "reasoning": "AI Unavailable", "strengths": [], "weaknesses": [], "skills": []}
+
+                try:
+                    prompt = f"""You are a high-level Senior Technical Recruiter. Perform a deep logical analysis.
+
+ANALYTICAL FRAMEWORK:
+1. INTERNAL CHECK: Do NOT claim a skill is missing if it exists in the resume.
+2. EXPERIENCE: Verify if they have the required years.
+3. CALIBRATION: Be critical. 90+ is nearly perfect. 50 is average.
+
+JOB DESCRIPTION SUMMARY:
+{jd_text_limited}
+
+CANDIDATE RESUME:
+Name: {candidate_name}
+{resume_text}
+
+Return ONLY a valid JSON object with:
+- analysis: Internal step-by-step reasoning.
+- resume_id: "{resume_id}"
+- score: (0-100) Be discriminating.
+- confidence: HIGH (>=70), MEDIUM (40-69), LOW (<40).
+- reasoning: Short conclusion.
+- strengths: list of 3-5 key technical strengths.
+- weaknesses: list of essential missing items.
+- skills: list of technical keywords."""
+
+                    completion = await client.chat.completions.create(
                         model=self.model,
                         messages=[{"role": "user", "content": prompt}],
                         max_tokens=800,
@@ -135,7 +176,10 @@ SUMMARIES:
 Adjust scores (0-100) to create a clear separation. 
 Return ONLY JSON: {{"resume_id": adjusted_score, ...}}"""
 
-                cal_completion = await self.client.chat.completions.create(
+                client = self.client
+                if not client: return rankings
+
+                cal_completion = await client.chat.completions.create(
                     model=self.model,
                     messages=[{"role": "user", "content": calibration_prompt}],
                     max_tokens=400,
