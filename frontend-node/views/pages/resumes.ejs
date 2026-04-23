@@ -1,0 +1,230 @@
+<div class="resumes-container">
+  <section class="card upload-section">
+    <h2>📤 Upload Resumes</h2>
+
+    <div class="job-selector">
+      <label>Select Job</label>
+      <select id="jobSelect" onchange="handleJobSelect(this.value)">
+        <option value="">-- Choose a job --</option>
+        <% if (availableJobs && availableJobs.length > 0) { %>
+          <% availableJobs.forEach(job => { %>
+            <option value="<%= job.job_id %>" <%= selectedJobId === job.job_id ? 'selected' : '' %>>
+              <%= job.title %> (ID: <%= job.job_id.substring(0, 8) %>...)
+            </option>
+          <% }) %>
+        <% } %>
+      </select>
+    </div>
+
+    <% if (selectedJobId) { %>
+      <form id="resumeUploadForm" method="POST" action="/resumes/upload" enctype="multipart/form-data" class="upload-form">
+        <input type="hidden" name="jobId" value="<%= selectedJobId %>" />
+
+        <div class="source-selector">
+          <label>Resume Source</label>
+          <div class="radio-group">
+            <label><input type="radio" name="source" value="manual" onchange="toggleSource('manual')" checked /> 📂 Manual Upload</label>
+            <label><input type="radio" name="source" value="gmail" onchange="toggleSource('gmail')" /> 📧 Gmail</label>
+          </div>
+        </div>
+
+        <div id="manualUploadZone">
+          <div class="drag-drop-zone" id="dragDropZone">
+            <div class="drag-drop-content">
+              <p>🎯 Drag & drop resumes here</p>
+              <p>or</p>
+              <input type="file" name="resumes" id="resumeFiles" multiple accept=".pdf,.docx,.txt" hidden />
+              <label for="resumeFiles" class="btn btn-secondary">Browse Files</label>
+            </div>
+          </div>
+          <div id="fileList" class="file-list"></div>
+          <button type="submit" class="btn btn-primary">Upload Resumes</button>
+        </div>
+
+        <div id="gmailFetchZone" style="display: none;">
+          <div class="gmail-info-box">
+            <p>We will search your active Gmail account for resume attachments matching this job.</p>
+            <button type="button" class="btn btn-primary" onclick="fetchFromGmail()">
+              📧 Fetch Resumes from Gmail
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <div id="uploadStatus" class="upload-status">
+        <% if (locals.uploaded) { %>
+          <div class="alert alert-success">Successfully uploaded <%= uploaded %> resumes!</div>
+        <% } %>
+      </div>
+    <% } else { %>
+      <p class="info-message">Please select a job first to upload resumes.</p>
+    <% } %>
+  </section>
+
+  <% if (selectedJobId) { %>
+    <section class="card resumes-list-section">
+      <h2>📋 Resumes for Job</h2>
+      <% if (typeof resumes !== 'undefined' && resumes.length > 0) { %>
+        <div class="resumes-grid">
+          <% resumes.forEach(resume => { %>
+            <div class="resume-card">
+              <div class="resume-info">
+                <h3><%= resume.candidate_name %></h3>
+                <p>📧 <%= resume.email || 'No email' %></p>
+                <div class="resume-meta">
+                  <span class="source-tag <%= resume.source %>"><%= resume.source %></span>
+                  <span class="status-tag <%= resume.status %>"><%= resume.status.replace('_', ' ') %></span>
+                </div>
+              </div>
+              <div class="resume-actions">
+                <a href="/candidate/<%= resume.resume_id %>" class="btn btn-secondary btn-sm">View Details</a>
+                <button onclick="deleteResume('<%= resume.resume_id %>')" class="btn btn-danger btn-sm">Delete</button>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+        <div class="ranking-action">
+          <button onclick="startRanking('<%= selectedJobId %>')" class="btn btn-primary">
+            🚀 Match Candidates (>70% Match)
+          </button>
+        </div>
+      <% } else { %>
+        <p class="info-message">No resumes uploaded for this job yet.</p>
+      <% } %>
+    </section>
+  <% } %>
+</div>
+
+<script>
+async function deleteResume(resumeId) {
+  if (!confirm("Are you sure you want to delete this resume?")) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/resumes/${resumeId}`, {
+      method: 'DELETE',
+    });
+
+    if (response.ok) {
+      location.reload();
+    } else {
+      const data = await response.json();
+      alert("Error: " + (data.error || "Failed to delete resume"));
+    }
+  } catch (err) {
+    alert("Network error: " + err.message);
+  }
+}
+
+function handleJobSelect(jobId) {
+  if (jobId) {
+    window.location.href = '/resumes?jobId=' + jobId;
+  }
+}
+
+function toggleSource(source) {
+  const manualZone = document.getElementById('manualUploadZone');
+  const gmailZone = document.getElementById('gmailFetchZone');
+  if (source === 'manual') {
+    manualZone.style.display = 'block';
+    gmailZone.style.display = 'none';
+  } else {
+    manualZone.style.display = 'none';
+    gmailZone.style.display = 'block';
+  }
+}
+
+async function startRanking(jobId) {
+  if (!jobId) return;
+  
+  const statusEl = document.getElementById('uploadStatus');
+  statusEl.innerHTML = '<div class="alert alert-info">🤖 AI is finding matched candidates... This may take a moment.</div>';
+  
+  try {
+    const response = await fetch(`/api/judge-batch/${jobId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      statusEl.innerHTML = '<div class="alert alert-success">✅ Matching complete! Redirecting to matches...</div>';
+      setTimeout(() => {
+        window.location.href = `/dashboard?jobId=${jobId}&confidence=HIGH`;
+      }, 1500);
+    } else {
+      statusEl.innerHTML = `<div class="alert alert-danger">Error: ${data.error || 'Matching failed'}</div>`;
+    }
+  } catch (error) {
+    console.error('Ranking error:', error);
+    statusEl.innerHTML = '<div class="alert alert-danger">An error occurred during ranking.</div>';
+  }
+}
+
+async function fetchFromGmail() {
+  const jobId = '<%= selectedJobId %>';
+  const statusEl = document.getElementById('uploadStatus');
+  
+  if (!jobId) return;
+  
+  statusEl.innerHTML = '<div class="alert alert-info">Fetching resumes from Gmail... This may take a minute.</div>';
+  
+  try {
+    const response = await fetch('/resumes/fetch-gmail', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ jobId }),
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      window.location.href = data.redirect;
+    } else {
+      statusEl.innerHTML = `<div class="alert alert-danger">Error: ${data.error || 'Failed to fetch resumes'}</div>`;
+    }
+  } catch (error) {
+    console.error('Fetch error:', error);
+    statusEl.innerHTML = '<div class="alert alert-danger">An error occurred during fetch.</div>';
+  }
+}
+
+// Drag and drop
+const dragZone = document.getElementById('dragDropZone');
+const fileInput = document.getElementById('resumeFiles');
+
+dragZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  dragZone.classList.add('drag-active');
+});
+
+dragZone.addEventListener('dragleave', () => {
+  dragZone.classList.remove('drag-active');
+});
+
+dragZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dragZone.classList.remove('drag-active');
+  fileInput.files = e.dataTransfer.files;
+  updateFileList();
+});
+
+fileInput.addEventListener('change', updateFileList);
+
+function updateFileList() {
+  const list = document.getElementById('fileList');
+  list.innerHTML = '';
+  for (let file of fileInput.files) {
+    const item = document.createElement('div');
+    item.className = 'file-item';
+    item.textContent = `✓ ${file.name}`;
+    list.appendChild(item);
+  }
+}
+</script>

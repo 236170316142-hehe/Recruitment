@@ -1,0 +1,173 @@
+<div class="dashboard-container">
+  <section class="card filters-section">
+    <h2>🔍 Filters & Actions</h2>
+    <div class="filters-grid">
+      <div class="filter-group">
+        <label>Job</label>
+        <select id="jobFilterSelect" onchange="handleJobFilterChange(this.value)">
+          <option value="">-- Select Job --</option>
+          <% if (availableJobs && availableJobs.length > 0) { %>
+            <% availableJobs.forEach(job => { %>
+              <option value="<%= job.job_id %>" <%= selectedJobId === job.job_id ? 'selected' : '' %>>
+                <%= (job.title || 'Untitled Job').substring(0, 50) %><%= (job.title && job.title.length > 50) ? '...' : '' %>
+              </option>
+            <% }) %>
+          <% } %>
+        </select>
+      </div>
+
+      <% if (selectedJobId) { %>
+        <div class="filter-group">
+          <label>Confidence</label>
+          <select id="confidenceFilter" onchange="applyFilters()">
+            <option value="">All</option>
+            <option value="HIGH">HIGH</option>
+            <option value="MEDIUM">MEDIUM</option>
+            <option value="LOW">LOW</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Source</label>
+          <select id="sourceFilter" onchange="applyFilters()">
+            <option value="">All</option>
+            <option value="manual">Manual</option>
+            <option value="gmail">Gmail</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Search</label>
+          <input type="text" id="searchInput" placeholder="Candidate name or email..." onkeyup="applyFilters()" />
+        </div>
+
+        <button class="btn btn-primary" onclick="generateRankings()">
+          ⚡ Match Candidates
+        </button>
+      <% } %>
+    </div>
+  </section>
+
+  <% if (selectedJobId) { %>
+    <section class="card rankings-section">
+      <h2>📊 Matched Candidates (High Level > 70%)</h2>
+      <p class="meta">Total: <%= dashboard.total_candidates %> matches | Generated: <%= new Date(dashboard.generated_at).toLocaleString() %></p>
+      
+      <% if (dashboard.candidates.length === 0) { %>
+        <div class="info-message">
+          No candidates currently match the <strong>HIGH (70%+)</strong> threshold. 
+          Use the filters above to see all candidates or try re-matching.
+        </div>
+      <% } %>
+
+      <div class="table-wrap">
+        <table class="rankings-table">
+          <thead>
+            <tr>
+              <th>Match</th>
+              <th>Name</th>
+              <th>Source</th>
+              <th>Score</th>
+              <th>Confidence</th>
+              <th>Strengths</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="candidateTableBody">
+            <% dashboard.candidates.forEach((candidate, index) => { %>
+              <tr class="candidate-row" data-resume-id="<%= candidate.resume_id %>">
+                <td class="rank-cell"><strong>#<%= index + 1 %></strong></td>
+                <td class="name-cell">
+                  <strong><%= candidate.name %></strong>
+                  <br/>
+                  <small><%= candidate.email || "no-email" %></small>
+                </td>
+                <td class="source-cell">
+                  <% if (candidate.source === 'gmail') { %>
+                    <span class="badge badge-gmail">📧 Gmail</span>
+                  <% } else { %>
+                    <span class="badge badge-manual">📂 Manual</span>
+                  <% } %>
+                </td>
+                <td class="score-cell"><%= Math.round(candidate.score) %>/100</td>
+                <td class="confidence-cell">
+                  <span class="confidence-pill confidence-<%= candidate.confidence.toLowerCase() %>">
+                    <%= candidate.confidence %>
+                  </span>
+                </td>
+                <td class="strengths-cell">
+                  <% if (candidate.strengths && candidate.strengths.length > 0) { %>
+                    <div class="strength-tags">
+                      <% candidate.strengths.slice(0, 2).forEach(s => { %>
+                        <span class="tag-strength"><%= typeof s === 'string' ? s.substring(0, 20) : '' %></span>
+                      <% }) %>
+                      <% if (candidate.strengths.length > 2) { %>
+                        <span class="tag-more">+<%= candidate.strengths.length - 2 %></span>
+                      <% } %>
+                    </div>
+                  <% } else { %>
+                    <span class="muted">--</span>
+                  <% } %>
+                </td>
+                <td class="actions-cell">
+                  <a href="/candidate/<%= candidate.resume_id %>" class="btn btn-sm btn-secondary">View</a>
+                  <a href="<%= candidate.resume_url %>" target="_blank" class="btn btn-sm btn-accent">Resume</a>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  <% } else if (selectedJobId) { %>
+    <section class="card empty-state-section">
+      <p class="empty-state">No matches yet. Upload resumes and click "Match Candidates" to find the best talent.</p>
+    </section>
+  <% } else { %>
+    <section class="card empty-state-section">
+      <p class="empty-state">Select a job to find matched candidates.</p>
+    </section>
+  <% } %>
+</div>
+
+<script>
+function handleJobFilterChange(jobId) {
+  if (jobId) {
+    window.location.href = '/dashboard?jobId=' + jobId + '&confidence=HIGH';
+  }
+}
+
+function applyFilters() {
+  const jobId = document.getElementById('jobFilterSelect').value;
+  if (!jobId) return;
+
+  const confidence = document.getElementById('confidenceFilter')?.value || '';
+  const source = document.getElementById('sourceFilter')?.value || '';
+  const search = document.getElementById('searchInput')?.value || '';
+
+  let url = `/dashboard?jobId=${jobId}`;
+  if (confidence) url += `&confidence=${confidence}`;
+  if (source) url += `&source=${source}`;
+  if (search) url += `&search=${search}`;
+
+  window.location.href = url;
+}
+
+function generateRankings() {
+  const jobId = document.getElementById('jobFilterSelect').value;
+  if (!jobId) {
+    alert('Please select a job');
+    return;
+  }
+
+  fetch(`/api/judge-batch/${jobId}`, { method: 'POST' })
+    .then(res => res.json())
+    .then(data => {
+      alert('Candidate matching complete!');
+      window.location.href = `/dashboard?jobId=${jobId}&confidence=HIGH`;
+    })
+    .catch(err => {
+      alert('Error matching candidates: ' + err.message);
+    });
+}
+</script>

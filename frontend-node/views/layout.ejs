@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Recruitment Hub - Dashboard</title>
+  <link rel="stylesheet" href="/static/css/dashboard.css" />
+  <script src="/static/js/auth.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <%- include('partials/sidebar') %>
+    <main class="main-content">
+      <%- include('partials/header') %>
+      <div class="page-content">
+        <%- include('pages/' + page) %>
+      </div>
+    </main>
+  </div>
+  
+  <!-- Gmail Connection Modal -->
+  <div id="gmailModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2>Connect Gmail Account</h2>
+      <p>Click the button below to authorize access to your Gmail inbox for fetching resumes.</p>
+      <button id="connectGmailBtn" class="btn btn-primary" onclick="connectGmailAccount()">
+        📧 Connect Gmail
+      </button>
+      <p class="modal-note">We only request read-only access to your Gmail inbox.</p>
+    </div>
+  </div>
+
+  <!-- User Profile Dropdown -->
+  <div id="profileDropdown" class="dropdown-menu">
+    <div class="dropdown-header">
+      <% if (userProfile) { %>
+        <div class="user-info">
+          <div class="user-avatar"><%= userProfile.name.charAt(0).toUpperCase() %></div>
+          <div>
+            <div class="user-name"><%= userProfile.name %></div>
+            <div class="user-email"><%= userProfile.email %></div>
+          </div>
+        </div>
+      <% } %>
+    </div>
+    <div class="dropdown-divider"></div>
+    <a href="#" onclick="openGmailSettings(event)" class="dropdown-item">
+      📧 Gmail Accounts
+    </a>
+    <a href="#" onclick="handleLogout(event)" class="dropdown-item logout">
+      🚪 Logout
+    </a>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<%- include('partials/head') %>
+
+<% if (error) { %>
+  <section class="card error">
+    <strong>Error:</strong> <%= error %>
+  </section>
+<% } %>
+
+<section class="grid-two">
+  <form class="card" method="POST" action="/jobs" enctype="multipart/form-data">
+    <h2>1) Upload Job Description</h2>
+    <label>Paste JD Text</label>
+    <textarea name="jdText" rows="8" placeholder="Paste the job description here"></textarea>
+    <label>Or upload JD file (.pdf/.docx/.txt)</label>
+    <input type="file" name="jdFile" accept=".pdf,.docx,.txt,.md" />
+    <button type="submit">Create Job</button>
+  </form>
+
+  <form class="card" method="POST" action="/resumes" enctype="multipart/form-data">
+    <h2>2) Upload Resumes</h2>
+    <label>Job ID</label>
+    <input type="text" name="jobId" value="<%= jobId || '' %>" required />
+    <label>Source</label>
+    <select name="source">
+      <option value="manual">Manual</option>
+      <option value="gmail">Gmail</option>
+    </select>
+    <label>Upload resumes (.pdf/.docx/.txt)</label>
+    <input type="file" name="resumes" multiple required accept=".pdf,.docx,.txt,.md" />
+    <button type="submit">Upload Resumes</button>
+  </form>
+</section>
+
+<section class="grid-two">
+  <form class="card" method="POST" action="/judge">
+    <h2>3) Run LLM Batch Judge</h2>
+    <label>Job ID</label>
+    <input type="text" name="jobId" value="<%= jobId || '' %>" required />
+    <button type="submit">Generate Rankings</button>
+  </form>
+
+  <form class="card" method="GET" action="/">
+    <h2>4) Open Dashboard</h2>
+    <label>Job ID</label>
+    <input type="text" name="jobId" value="<%= jobId || '' %>" required />
+    <button type="submit">View Ranked Candidates</button>
+  </form>
+</section>
+
+<% if (dashboard && dashboard.candidates && dashboard.candidates.length > 0) { %>
+<section class="card table-card">
+  <h2>Ranked Candidates</h2>
+  <p>Total: <%= dashboard.total_candidates %> | Generated: <%= new Date(dashboard.generated_at).toLocaleString() %></p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Name</th>
+          <th>Score</th>
+          <th>Confidence</th>
+          <th>JD</th>
+          <th>Skills</th>
+          <th>Experience</th>
+          <th>Source</th>
+          <th>Reasoning</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% dashboard.candidates.forEach((candidate) => { %>
+          <tr>
+            <td><%= candidate.rank %></td>
+            <td><%= candidate.name %></td>
+            <td><%= candidate.final_score %></td>
+            <td><span class="pill <%= candidate.confidence.toLowerCase() %>"><%= candidate.confidence %></span></td>
+            <td><%= candidate.jd_relevance_score %></td>
+            <td><%= candidate.skills_match_score %></td>
+            <td><%= candidate.experience_match_score %></td>
+            <td><%= candidate.source === 'gmail' ? '📧 Gmail' : '📂 Manual' %></td>
+            <td><%= candidate.reasoning %></td>
+            <td><a target="_blank" href="/resume/<%= candidate.resume_id %>">Open Resume</a></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+<% } %>
+
+<%- include('partials/foot') %>

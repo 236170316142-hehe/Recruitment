@@ -1,0 +1,17 @@
+<header class="top-header">
+  <div class="header-left">
+    <h1>AI-Driven Recruitment Hub</h1>
+  </div>
+  <div class="header-right">
+    <% if (typeof jobId !== 'undefined' && jobId) { %>
+      <span class="job-badge">Job ID: <%= jobId.substring(0, 8) %>...</span>
+    <% } %>
+    <% if (userProfile) { %>
+      <div class="user-profile-button" onclick="toggleProfileDropdown()">
+        <div class="user-avatar-small"><%= userProfile.name.charAt(0).toUpperCase() %></div>
+        <span class="user-name-header"><%= userProfile.name %></span>
+        <span class="dropdown-arrow">▼</span>
+      </div>
+    <% } %>
+  </div>
+</header>

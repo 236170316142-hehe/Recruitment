@@ -1,0 +1,20 @@
+# Node
+frontend-node/node_modules/
+frontend-node/.env
+
+# Python
+backend-fastapi/.venv/
+backend-fastapi/__pycache__/
+backend-fastapi/.env
+backend-fastapi/**/*.pyc
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Runtime storage (local only)
+backend-fastapi/storage/jds/*
+backend-fastapi/storage/resumes/*
+!backend-fastapi/storage/jds/.gitkeep
+!backend-fastapi/storage/resumes/.gitkeep

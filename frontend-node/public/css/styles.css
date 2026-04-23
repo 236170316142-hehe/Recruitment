@@ -1,0 +1,159 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg: #f8f4ec;
+  --paper: #fffdf8;
+  --ink: #1f2933;
+  --muted: #52606d;
+  --line: #d9d0c4;
+  --brand: #176087;
+  --brand-2: #ff7a59;
+  --ok: #1f7a5b;
+  --mid: #956307;
+  --low: #9f2f2f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--bg);
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.page-bg {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at 10% 20%, rgba(23, 96, 135, 0.15), transparent 35%),
+    radial-gradient(circle at 90% 10%, rgba(255, 122, 89, 0.15), transparent 30%),
+    radial-gradient(circle at 80% 90%, rgba(31, 122, 91, 0.12), transparent 28%);
+  z-index: 0;
+}
+
+.container {
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.hero {
+  margin-bottom: 1rem;
+}
+
+.hero h1 {
+  margin-bottom: 0.2rem;
+}
+
+.hero p {
+  margin-top: 0;
+  color: var(--muted);
+}
+
+.grid-two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 1rem;
+  box-shadow: 0 6px 20px rgba(45, 43, 40, 0.05);
+}
+
+.error {
+  border-color: #d14b4b;
+  color: #7e2020;
+  margin-bottom: 1rem;
+}
+
+label {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+
+input,
+textarea,
+select,
+button {
+  width: 100%;
+  margin-bottom: 0.8rem;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  padding: 0.65rem;
+  font-family: inherit;
+}
+
+button {
+  background: linear-gradient(90deg, var(--brand), #0f4661);
+  color: #fff;
+  border: 0;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.table-card p {
+  color: var(--muted);
+  margin-top: 0;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+th,
+td {
+  border-bottom: 1px solid var(--line);
+  padding: 0.5rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.78rem;
+  color: #3f4c5a;
+}
+
+.pill {
+  border-radius: 50px;
+  padding: 0.2rem 0.6rem;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.pill.high {
+  background: var(--ok);
+}
+
+.pill.medium {
+  background: var(--mid);
+}
+
+.pill.low {
+  background: var(--low);
+}
+
+@media (max-width: 900px) {
+  .grid-two {
+    grid-template-columns: 1fr;
+  }
+}

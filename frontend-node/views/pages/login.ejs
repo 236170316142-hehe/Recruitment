@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign In - AI Recruitment Hub</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .login-container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      padding: 48px 40px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .logo {
+      font-size: 2.5rem;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      color: #1e293b;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: #64748b;
+      margin-bottom: 40px;
+      font-size: 0.95rem;
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      margin: 24px 0;
+      color: #cbd5e1;
+    }
+
+    .divider::before,
+    .divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background-color: #e2e8f0;
+    }
+
+    .divider span {
+      padding: 0 12px;
+      font-size: 0.85rem;
+    }
+
+    .google-signin-container {
+      display: flex;
+      justify-content: center;
+      margin: 24px 0;
+    }
+
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 24px;
+      text-align: left;
+    }
+
+    .form-label {
+      font-size: 0.9rem;
+      color: #334155;
+      font-weight: 600;
+    }
+
+    .form-input {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .form-input:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+    }
+
+    .primary-button {
+      border: none;
+      background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+      color: white;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+    }
+
+    .primary-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 20px rgba(15, 23, 42, 0.15);
+    }
+
+    .primary-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .secondary-button {
+      border: 1px solid #cbd5e1;
+      background: white;
+      color: #334155;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    #g_id_signin {
+      display: inline-block;
+    }
+
+    .signin-note {
+      color: #94a3b8;
+      font-size: 0.85rem;
+      margin-top: 20px;
+      line-height: 1.5;
+    }
+
+    .error-message {
+      background-color: #fee2e2;
+      border: 1px solid #fecaca;
+      color: #dc2626;
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .loading.show {
+      display: block;
+    }
+
+    .spinner {
+      border: 4px solid #f3f4f6;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .login-container {
+        padding: 32px 24px;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="logo">🎯</div>
+    <h1>Recruitment Hub</h1>
+    <p class="subtitle">AI-Powered Resume Ranking & Candidate Management</p>
+
+    <div class="error-message" id="errorMessage"></div>
+    <div class="error-message" id="googleDisabledMessage" style="display: none;"></div>
+
+    <div class="google-signin-container" id="googleSigninContainer">
+      <div id="g_id_signin"></div>
+    </div>
+
+    <form class="login-form" id="emailLoginForm">
+      <div>
+        <label class="form-label" for="email">Email</label>
+        <input class="form-input" id="email" name="email" type="email" placeholder="you@company.com" required />
+      </div>
+      <div>
+        <label class="form-label" for="name">Name</label>
+        <input class="form-input" id="name" name="name" type="text" placeholder="Your full name" />
+      </div>
+      <button class="primary-button" id="emailLoginButton" type="submit">Continue with email</button>
+    </form>
+
+    <div class="divider"><span>or</span></div>
+
+    <div class="loading" id="loadingIndicator">
+      <div class="spinner"></div>
+      <p>Signing you in...</p>
+    </div>
+
+    <div class="signin-note">
+      <strong>Sign in with your Google account</strong><br />
+      HR users can then connect their Gmail inbox to automatically fetch resumes
+    </div>
+  </div>
+
+  <script>
+    // Configuration
+    const BACKEND_API_BASE = window.location.hostname === 'localhost' 
+      ? 'http://localhost:8000' 
+      : window.location.origin.replace(':3000', ':8000');
+
+    const GOOGLE_CLIENT_ID = '<%= GOOGLE_CLIENT_ID || '' %>';
+
+    function showGoogleDisabled(message) {
+      const disabledEl = document.getElementById('googleDisabledMessage');
+      disabledEl.textContent = message;
+      disabledEl.classList.add('show');
+      disabledEl.style.display = 'block';
+    }
+
+    async function initializeGoogleSignIn() {
+      try {
+        if (!GOOGLE_CLIENT_ID) {
+          showGoogleDisabled('Google sign-in is not configured yet.');
+          return;
+        }
+
+        if (!window.google || !google.accounts || !google.accounts.oauth2) {
+          // Retry after a short delay if gsi hasn't fully loaded
+          setTimeout(initializeGoogleSignIn, 500);
+          return;
+        }
+
+        // Initialize the Code Client for Unified Login + Gmail
+        window.client = google.accounts.oauth2.initCodeClient({
+          client_id: GOOGLE_CLIENT_ID,
+          scope: 'openid profile email https://www.googleapis.com/auth/gmail.readonly',
+          ux_mode: 'popup',
+          select_account: true,
+          prompt: 'consent',
+          callback: async (response) => {
+            if (response.code) {
+              console.log("Authorization code received, exchanging...");
+              await handleUnifiedSignIn(response.code);
+            }
+          },
+        });
+
+        // Create a custom button since gsi renderButton doesn't support custom scopes easily with initCodeClient
+        const container = document.getElementById('googleSigninContainer');
+        container.style.flexDirection = 'column';
+        container.style.gap = '12px';
+        container.innerHTML = `
+          <button onclick="window.client.requestCode()" class="primary-button" style="background: #2563eb; color: white; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;">
+             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+             Sign in & Auto-Connect Gmail
+          </button>
+          
+          <div id="g_id_signin_fallback"></div>
+          <p style="font-size: 0.8rem; color: #64748b; margin-top: 4px;">Use standard login if you have trouble connecting Gmail</p>
+        `;
+
+        // Also initialize standard GSI for the fallback button
+        google.accounts.id.initialize({ 
+          client_id: GOOGLE_CLIENT_ID, 
+          callback: handleCredentialResponse 
+        });
+        google.accounts.id.renderButton(document.getElementById('g_id_signin_fallback'), {
+          theme: 'outline',
+          size: 'large',
+          text: 'signin_with',
+          width: '100%'
+        });
+      } catch (error) {
+        console.error('Error initializing Google Sign-In:', error);
+        showGoogleDisabled('Google sign-in is unavailable right now.');
+      }
+    }
+
+    async function handleUnifiedSignIn(code) {
+      try {
+        showLoading(true);
+        clearError();
+
+        const res = await fetch(`${BACKEND_API_BASE}/auth/google/signin-unified`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ auth_code: code }),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.detail || 'Unified sign-in failed');
+        }
+
+        const data = await res.json();
+        saveSession(data);
+        window.location.href = '/';
+      } catch (error) {
+        console.error('Error in unified sign-in:', error);
+        showError(error.message || 'Sign-in failed. Please ensure you approved Gmail access.');
+        showLoading(false);
+      }
+    }
+
+    function saveSession(data) {
+      localStorage.setItem('auth_token', data.session_token);
+      localStorage.setItem('user_id', data.user_id);
+      localStorage.setItem('user_name', data.name);
+      localStorage.setItem('user_email', data.email);
+      document.cookie = `auth_token=${encodeURIComponent(data.session_token)}; path=/; max-age=${60 * 60 * 24 * 30}`;
+    }
+
+    // Handle the credential response from Google (original flow fallback)
+    async function handleCredentialResponse(response) {
+      try {
+        showLoading(true);
+        clearError();
+
+        const res = await fetch(`${BACKEND_API_BASE}/auth/google/signin`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id_token: response.credential }),
+        });
+
+        if (!res.ok) throw new Error('Sign-in failed');
+        const data = await res.json();
+        saveSession(data);
+        window.location.href = '/';
+      } catch (error) {
+        showError('Sign-in failed.');
+        showLoading(false);
+      }
+    }
+
+    async function handleEmailLogin(event) {
+      event.preventDefault();
+      try {
+        showLoading(true);
+        clearError();
+
+        const email = document.getElementById('email').value.trim();
+        const name = document.getElementById('name').value.trim();
+
+        const res = await fetch(`${BACKEND_API_BASE}/auth/email/signin`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email, name: name || null }),
+        });
+
+        if (!res.ok) {
+          throw new Error('Email sign-in failed');
+        }
+
+        const data = await res.json();
+
+        localStorage.setItem('auth_token', data.session_token);
+        localStorage.setItem('user_id', data.user_id);
+        localStorage.setItem('user_name', data.name);
+        localStorage.setItem('user_email', data.email);
+        document.cookie = `auth_token=${encodeURIComponent(data.session_token)}; path=/; max-age=${60 * 60 * 24 * 30}`;
+
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 300);
+      } catch (error) {
+        console.error('Email sign-in error:', error);
+        showError('Email sign-in failed. Please try again.');
+        showLoading(false);
+      }
+    }
+
+    function showLoading(show) {
+      document.getElementById('loadingIndicator').classList.toggle('show', show);
+      document.getElementById('emailLoginForm').style.display = show ? 'none' : 'flex';
+      document.getElementById('googleSigninContainer').style.display = show ? 'none' : 'flex';
+    }
+
+    function showError(message) {
+      const errorEl = document.getElementById('errorMessage');
+      errorEl.textContent = message;
+      errorEl.classList.add('show');
+    }
+
+    function clearError() {
+      const errorEl = document.getElementById('errorMessage');
+      errorEl.classList.remove('show');
+    }
+
+    // Initialize on page load
+    document.getElementById('emailLoginForm').addEventListener('submit', handleEmailLogin);
+    window.addEventListener('load', initializeGoogleSignIn);
+  </script>
+</body>
+</html>

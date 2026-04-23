@@ -1,0 +1,99 @@
+<div class="candidate-detail-container">
+  <section class="card candidate-header">
+    <div class="header-row">
+      <div class="header-main">
+        <h1><%= candidate.name %></h1>
+        <p class="candidate-email"><%= candidate.email %></p>
+        <% if (candidate.phone) { %>
+          <p class="candidate-phone">📱 <%= candidate.phone %></p>
+        <% } %>
+      </div>
+      <div class="header-stats">
+        <% if (candidate.score !== undefined) { %>
+          <div class="stat-box">
+            <div class="stat-value"><%= Math.round(candidate.score) %></div>
+            <div class="stat-label">Score</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value confidence-<%= candidate.confidence.toLowerCase() %>"><%= candidate.confidence %></div>
+            <div class="stat-label">Confidence</div>
+          </div>
+        <% } %>
+        <div class="stat-box">
+          <div class="stat-value"><%= candidate.experience_years %> yrs</div>
+          <div class="stat-label">Experience</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="source-badge">
+      <% if (candidate.source === 'gmail') { %>
+        <span class="badge badge-gmail">📧 Gmail</span>
+      <% } else { %>
+        <span class="badge badge-manual">📂 Manual Upload</span>
+      <% } %>
+    </div>
+  </section>
+
+  <div class="candidate-grid">
+    <section class="card candidate-section">
+      <h2>💡 Strengths</h2>
+      <% if (candidate.strengths && candidate.strengths.length > 0) { %>
+        <div class="strengths-list">
+          <% candidate.strengths.forEach(strength => { %>
+            <div class="strength-item">✓ <%= strength %></div>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <p class="muted">No strengths recorded.</p>
+      <% } %>
+    </section>
+
+    <section class="card candidate-section">
+      <h2>⚠️ Gaps & Weaknesses</h2>
+      <% if (candidate.weaknesses && candidate.weaknesses.length > 0) { %>
+        <div class="weaknesses-list">
+          <% candidate.weaknesses.forEach(weakness => { %>
+            <div class="weakness-item">✗ <%= weakness %></div>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <p class="muted">No gaps recorded.</p>
+      <% } %>
+    </section>
+  </div>
+
+  <section class="card candidate-section">
+    <h2>🛠️ Skills</h2>
+    <% if (candidate.skills && candidate.skills.length > 0) { %>
+      <div class="skills-cloud">
+        <% candidate.skills.forEach(skill => { %>
+          <span class="skill-tag"><%= skill %></span>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <p class="muted">No skills extracted.</p>
+    <% } %>
+  </section>
+
+  <section class="card candidate-section">
+    <h2>📝 Evaluation</h2>
+    <% if (candidate.reasoning) { %>
+      <p><%= candidate.reasoning %></p>
+    <% } else { %>
+      <p class="muted">No evaluation available.</p>
+    <% } %>
+  </section>
+
+  <section class="card candidate-section">
+    <h2>📄 Resume</h2>
+    <a href="<%= candidate.resume_url %>" target="_blank" class="btn btn-primary">
+      📥 Open Original Resume
+    </a>
+    <p class="info-message">This link opens the exact file uploaded, ensuring no mix-up between candidates.</p>
+  </section>
+
+  <div class="candidate-actions">
+    <a href="/dashboard" class="btn btn-secondary">← Back to Matches</a>
+  </div>
+</div>
