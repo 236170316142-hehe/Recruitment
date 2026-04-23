@@ -243,8 +243,14 @@
 
   <script>
     // Configuration
-    const BACKEND_API_BASE = '<%= locals.BACKEND_API_BASE || "" %>' || 
-      (window.location.hostname === 'localhost' ? 'http://localhost:8000' : window.location.origin);
+    const BACKEND_API_BASE = '<%= locals.BACKEND_API_BASE || "" %>';
+    
+    // Fallback for local development only if no env var is set
+    const API_URL = BACKEND_API_BASE || (window.location.hostname === 'localhost' ? 'http://localhost:8000' : '');
+
+    if (!API_URL && window.location.hostname !== 'localhost') {
+        console.error("CRITICAL: BACKEND_API_BASE is not configured in Render environment variables.");
+    }
 
     const GOOGLE_CLIENT_ID = '<%= GOOGLE_CLIENT_ID || '' %>';
 
@@ -319,7 +325,7 @@
         showLoading(true);
         clearError();
 
-        const res = await fetch(`${BACKEND_API_BASE}/auth/google/signin-unified`, {
+        const res = await fetch(`${API_URL}/auth/google/signin-unified`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -356,7 +362,7 @@
         showLoading(true);
         clearError();
 
-        const res = await fetch(`${BACKEND_API_BASE}/auth/google/signin`, {
+        const res = await fetch(`${API_URL}/auth/google/signin`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id_token: response.credential }),
@@ -381,7 +387,7 @@
         const email = document.getElementById('email').value.trim();
         const name = document.getElementById('name').value.trim();
 
-        const res = await fetch(`${BACKEND_API_BASE}/auth/email/signin`, {
+        const res = await fetch(`${API_URL}/auth/email/signin`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
