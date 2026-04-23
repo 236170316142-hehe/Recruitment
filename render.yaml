@@ -1,6 +1,7 @@
 services:
   # Backend API (FastAPI)
   - type: web
+    plan: free
     name: recruitment-backend
     env: python
     rootDir: backend-fastapi
@@ -30,6 +31,7 @@ services:
 
   # Frontend Dashboard (Node.js)
   - type: web
+    plan: free
     name: recruitment-frontend
     env: node
     rootDir: frontend-node
