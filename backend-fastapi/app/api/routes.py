@@ -164,17 +164,22 @@ async def upload_resumes_new(
         # Multi-layer smart filtering:
         # 1. Faster Heuristics
         if not parsed.get("is_resume", True):
-            print(f"Heuristic Filter: Skipping non-resume document: {safe_name}")
+            print(f"DEBUG: Heuristic Filter Skipped: {safe_name} - Not a resume")
             if storage_path.exists(): storage_path.unlink()
+            skipped_count += 1
             continue
             
         # 2. Advanced AI Classification (Smart Layer)
         ranker = GroqRanker()
-        if not await ranker.classify_document(text):
-            print(f"AI Filter: Skipping non-resume document: {safe_name}")
-            if storage_path.exists(): storage_path.unlink()
-            skipped_count += 1
-            continue
+        try:
+            if not await ranker.classify_document(text):
+                print(f"DEBUG: AI Filter Skipped: {safe_name} - AI classified as non-resume")
+                if storage_path.exists(): storage_path.unlink()
+                skipped_count += 1
+                continue
+        except Exception as e:
+            print(f"DEBUG: AI classification error for {safe_name}: {e}. Proceeding anyway.")
+            pass
 
         # Deduplication check
         if parsed.get("email"):
@@ -288,20 +293,24 @@ async def fetch_resumes_gmail(
             text = extract_text(storage_path)
             parsed = parse_resume(text, fallback_name=safe_name.rsplit(".", maxsplit=1)[0])
 
-            # Multi-layer smart filtering:
             # 1. Faster Heuristics
             if not parsed.get("is_resume", True):
-                print(f"Heuristic Filter: Skipping non-resume document: {safe_name}")
+                print(f"DEBUG: Heuristic Filter Skipped (Gmail): {safe_name} - Not a resume")
                 if storage_path.exists(): storage_path.unlink()
+                skipped_count += 1
                 continue
                 
             # 2. Advanced AI Classification (Smart Layer)
             ranker = GroqRanker()
-            if not await ranker.classify_document(text):
-                print(f"AI Filter: Skipping non-resume document: {safe_name}")
-                if storage_path.exists(): storage_path.unlink()
-                skipped_count += 1
-                continue
+            try:
+                if not await ranker.classify_document(text):
+                    print(f"DEBUG: AI Filter Skipped (Gmail): {safe_name} - AI classified as non-resume")
+                    if storage_path.exists(): storage_path.unlink()
+                    skipped_count += 1
+                    continue
+            except Exception as e:
+                print(f"DEBUG: AI classification error (Gmail) for {safe_name}: {e}. Proceeding anyway.")
+                pass
 
             # Deduplication check
             if parsed.get("email"):
