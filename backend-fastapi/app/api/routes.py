@@ -142,11 +142,8 @@ async def upload_resumes_new(
 ):
     """Upload resumes for a job."""
     db = get_db()
-    job = await db.jobs.find_one({"job_id": job_id})
-    if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
-
     created = []
+    skipped_count = 0
     now = datetime.now(timezone.utc)
 
     for file in files:
@@ -176,6 +173,7 @@ async def upload_resumes_new(
         if not await ranker.classify_document(text):
             print(f"AI Filter: Skipping non-resume document: {safe_name}")
             if storage_path.exists(): storage_path.unlink()
+            skipped_count += 1
             continue
 
         # Deduplication check
@@ -213,7 +211,12 @@ async def upload_resumes_new(
             )
         )
 
-    return ResumeUploadResponse(job_id=job_id, uploaded_count=len(created), resumes=created)
+    return ResumeUploadResponse(
+        job_id=job_id, 
+        uploaded_count=len(created), 
+        resumes=created,
+        skipped_count=skipped_count
+    )
 
 
 @router.post("/resumes/fetch-gmail", response_model=ResumeUploadResponse)
@@ -242,6 +245,7 @@ async def fetch_resumes_gmail(
     try:
         from googleapiclient.errors import HttpError
         gmail = GmailClient.from_access_token(access_token)
+        skipped_count = 0
         
         # Try multiple search strategies
         search_queries = [
@@ -296,6 +300,7 @@ async def fetch_resumes_gmail(
             if not await ranker.classify_document(text):
                 print(f"AI Filter: Skipping non-resume document: {safe_name}")
                 if storage_path.exists(): storage_path.unlink()
+                skipped_count += 1
                 continue
 
             # Deduplication check
@@ -305,6 +310,7 @@ async def fetch_resumes_gmail(
                     print(f"Skipping duplicate resume for {parsed['email']}")
                     if storage_path.exists():
                         storage_path.unlink()
+                    skipped_count += 1
                     continue
 
             document = {
@@ -335,7 +341,12 @@ async def fetch_resumes_gmail(
                 )
             )
 
-        return ResumeUploadResponse(job_id=job_id, uploaded_count=len(created), resumes=created)
+        return ResumeUploadResponse(
+            job_id=job_id, 
+            uploaded_count=len(created), 
+            resumes=created,
+            skipped_count=skipped_count
+        )
 
     except Exception as e:
         logger.error(f"Error fetching from Gmail: {e}")

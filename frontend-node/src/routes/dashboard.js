@@ -178,6 +178,7 @@ router.get("/resumes", requireAuth, addUserProfile, async (req, res) => {
       resumes: resumesData.resumes || [],
       userProfile: res.locals.userProfile,
       uploaded: req.query.uploaded,
+      skipped: req.query.skipped,
     });
   } catch (error) {
     return res.render("layout", {
@@ -220,7 +221,7 @@ router.post("/resumes/upload", requireAuth, upload.array("resumes", 50), async (
 
     const { data } = await apiClient.post("/resumes/upload", form, { headers });
 
-    return res.redirect(`/resumes?jobId=${jobId}&uploaded=${data.uploaded_count}`);
+    return res.redirect(`/resumes?jobId=${jobId}&uploaded=${data.uploaded_count}&skipped=${data.skipped_count || 0}`);
   } catch (error) {
     return res.status(400).render("layout", {
       page: "resumes",

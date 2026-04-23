@@ -22,6 +22,7 @@ class ResumeUploadResponse(BaseModel):
     job_id: str
     uploaded_count: int
     resumes: list[ResumeUploadItem]
+    skipped_count: int = 0
 
 
 class RankedCandidate(BaseModel):

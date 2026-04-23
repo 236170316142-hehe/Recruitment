@@ -53,7 +53,12 @@
 
       <div id="uploadStatus" class="upload-status">
         <% if (locals.uploaded) { %>
-          <div class="alert alert-success">Successfully uploaded <%= uploaded %> resumes!</div>
+          <div class="alert alert-success">
+            Successfully uploaded <%= uploaded %> resumes!
+            <% if (locals.skipped && locals.skipped > 0) { %>
+              <br><small>⚠️ <%= skipped %> files were skipped (non-resumes or duplicates).</small>
+            <% } %>
+          </div>
         <% } %>
       </div>
     <% } else { %>
