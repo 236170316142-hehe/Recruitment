@@ -25,6 +25,8 @@ class GroqRanker:
                 return None
         return self._client
 
+    async def classify_document(self, text: str) -> bool:
+        """Use LLM to determine if document is a professional resume."""
         client = self.client
         if not client:
             return True # Fallback if client failed
@@ -70,37 +72,14 @@ Return ONLY a JSON object: {{"is_resume": boolean, "reason": "string"}}"""
             async with semaphore:
                 candidate_name = r.get("candidate_name", "Unknown")
                 resume_id = r.get("resume_id")
-                # Shorter resume text to stay under TPM
                 resume_text = (r.get("text") or "")[:3000]
-
-                try:
-                    prompt = f"""You are a high-level Senior Technical Recruiter. Perform a deep logical analysis.
-
-ANALYTICAL FRAMEWORK:
-1. INTERNAL CHECK: Do NOT claim a skill is missing if it exists in the resume.
-2. EXPERIENCE: Verify if they have the required years.
-3. CALIBRATION: Be critical. 90+ is nearly perfect. 50 is average.
-
-JOB DESCRIPTION SUMMARY:
-{jd_text_limited}
-
-CANDIDATE RESUME:
-Name: {candidate_name}
-{resume_text}
-
-Return ONLY a valid JSON object with:
-- analysis: Internal step-by-step reasoning.
-- resume_id: "{resume_id}"
-- score: (0-100) Be discriminating.
-- confidence: HIGH (>=70), MEDIUM (40-69), LOW (<40).
-- reasoning: Short conclusion.
-- strengths: list of 3-5 key technical strengths.
-- weaknesses: list of essential missing items.
-- skills: list of technical keywords."""
 
                 client = self.client
                 if not client:
-                    return {"resume_id": resume_id, "score": 0, "confidence": "LOW", "reasoning": "AI Unavailable", "strengths": [], "weaknesses": [], "skills": []}
+                    return {
+                        "resume_id": resume_id, "score": 0, "confidence": "LOW",
+                        "reasoning": "AI Unavailable", "strengths": [], "weaknesses": [], "skills": []
+                    }
 
                 try:
                     prompt = f"""You are a high-level Senior Technical Recruiter. Perform a deep logical analysis.
@@ -135,7 +114,6 @@ Return ONLY a valid JSON object with:
                     )
 
                     response_text = completion.choices[0].message.content
-                    # Small pause to avoid RPM limit
                     await asyncio.sleep(0.5) 
                     return json.loads(response_text)
 
