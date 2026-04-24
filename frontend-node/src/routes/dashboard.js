@@ -129,11 +129,19 @@ router.post("/jobs/create", requireAuth, upload.single("file"), async (req, res)
     const { data } = await apiClient.post("/jobs", form, { headers });
     return res.redirect(`/?jobId=${data.job_id}`);
   } catch (error) {
+    const errorMsg = error.response?.data?.detail 
+      || error.response?.data?.message 
+      || error.message 
+      || "Job creation failed";
+    const status = error.response?.status || 500;
+    
+    console.error(`Job creation error [${status}]:`, errorMsg);
+    
     return res.status(400).render("layout", {
       page: "jobs",
       jobs: [],
       userProfile: res.locals.userProfile,
-      error: error.response?.data?.detail || "Job creation failed",
+      error: `Error (${status}): ${errorMsg}`,
     });
   }
 });
