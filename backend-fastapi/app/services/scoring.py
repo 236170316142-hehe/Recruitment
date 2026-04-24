@@ -47,7 +47,8 @@ def experience_match_score(min_experience: int, resume_experience: int) -> tuple
 
 
 def final_weighted_score(jd_score: float, skills_score: float, exp_score: float) -> float:
-    final = (jd_score * 0.40) + (skills_score * 0.35) + (exp_score * 0.25)
+    # Prioritize Skills (50%) and Experience (25%) over simple keyword overlap (25%)
+    final = (jd_score * 0.25) + (skills_score * 0.50) + (exp_score * 0.25)
     return round(min(final, 100.0), 2)
 
 

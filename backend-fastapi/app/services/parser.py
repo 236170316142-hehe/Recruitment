@@ -6,9 +6,19 @@ import docx
 import fitz
 
 SKILL_LEXICON = {
-    "python", "java", "javascript", "typescript", "react", "node.js", "node",
-    "fastapi", "django", "flask", "mongodb", "sql", "postgresql", "aws",
-    "docker", "kubernetes", "git", "machine learning", "nlp", "data analysis", "excel",
+    # Programming Languages
+    "python", "java", "javascript", "typescript", "c++", "c#", "go", "rust", "php", "ruby", "swift", "kotlin", "scala",
+    # AI/ML
+    "machine learning", "deep learning", "nlp", "natural language processing", "computer vision", "pytorch", "tensorflow", "keras", 
+    "scikit-learn", "sklearn", "pandas", "numpy", "opencv", "llm", "generative ai", "langchain", "prompt engineering",
+    # Data & Database
+    "sql", "postgresql", "mysql", "mongodb", "redis", "elasticsearch", "cassandra", "data engineering", "big data", "spark", "hadoop",
+    # Frameworks & Libraries
+    "react", "node.js", "node", "angular", "vue", "fastapi", "django", "flask", "express", "spring boot", "laravel", ".net",
+    # Cloud & DevOps
+    "aws", "azure", "gcp", "google cloud", "docker", "kubernetes", "git", "jenkins", "terraform", "ansible", "ci/cd", "linux",
+    # Soft Skills & Others
+    "agile", "scrum", "project management", "system design", "distributed systems", "api design", "rest", "graphql", "microservices"
 }
 
 
