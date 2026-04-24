@@ -493,8 +493,9 @@ async def judge_batch(
             groq_rankings.sort(key=lambda x: x.get("score", 0), reverse=True)
             ranked = groq_rankings
     
-    # Fallback to local scoring if LLM ranking fails or is disabled
-    if not ranked:
+    # Fallback to local scoring if LLM ranking fails, is disabled, or returns all zeros
+    if not ranked or all(r.get("score", 0) == 0 for r in ranked):
+        print("AI Ranking failed or returned all zeros. Falling back to local scoring.")
         ranked = rank_candidates(job, resumes)
 
     now = datetime.now(timezone.utc)
