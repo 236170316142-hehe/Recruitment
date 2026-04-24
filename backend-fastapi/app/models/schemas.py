@@ -36,11 +36,13 @@ class RankedCandidate(BaseModel):
     reasoning: str
     strengths: list[str] = []
     weaknesses: list[str] = []
+    filename: str = ""
     resume_url: str
 
 
 class RankingResponse(BaseModel):
     job_id: str
     total_candidates: int
+    threshold: int = 70
     generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     candidates: list[RankedCandidate]

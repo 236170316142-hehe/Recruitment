@@ -480,6 +480,15 @@ async def judge_batch(job_id: str, threshold: int = Query(70)):
             )
         await db.rankings.insert_many(ranking_docs)
 
+    # Update job with latest ranking info
+    await db.jobs.update_one(
+        {"job_id": job_id},
+        {"$set": {
+            "last_ranked_at": now,
+            "last_threshold": threshold
+        }}
+    )
+
     return RankingResponse(
         job_id=job_id,
         total_candidates=len(ranked),
@@ -558,6 +567,7 @@ async def dashboard(
     return RankingResponse(
         job_id=job_id,
         total_candidates=len(candidates),
+        threshold=job.get("last_threshold", 70),
         generated_at=latest,
         candidates=candidates,
     )
