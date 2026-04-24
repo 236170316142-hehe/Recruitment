@@ -41,10 +41,7 @@ services:
     startCommand: node src/app.js
     envVars:
       - key: BACKEND_API_BASE
-        fromService:
-          name: recruitment-backend
-          type: web
-          property: host
+        value: https://recruitment-backend-hooi.onrender.com
       - key: FRONTEND_PORT
         value: "10000"
       - key: GOOGLE_CLIENT_ID
