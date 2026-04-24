@@ -24,6 +24,7 @@
             <p class="meta">ID: <code><%= job.job_id.substring(0, 12) %>...</code></p>
             <p class="meta">Skills: <%= job.required_skills.join(", ") || "N/A" %></p>
             <p class="meta">Min Exp: <%= job.min_experience_years %> years</p>
+            <p class="meta">Created: <%= new Date(job.created_at).toLocaleString() %></p>
             <div class="job-card-actions">
               <a href="/resumes?jobId=<%= job.job_id %>" class="btn btn-secondary">Upload Resumes</a>
               <a href="/dashboard?jobId=<%= job.job_id %>" class="btn btn-accent">View Matches</a>

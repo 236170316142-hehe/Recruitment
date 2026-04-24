@@ -106,16 +106,24 @@ Return ONLY a valid JSON object with:
 - weaknesses: list of essential missing items.
 - skills: list of technical keywords."""
 
-                    completion = await client.chat.completions.create(
-                        model=self.model,
-                        messages=[{"role": "user", "content": prompt}],
-                        max_tokens=800,
-                        response_format={"type": "json_object"}
-                    )
-
-                    response_text = completion.choices[0].message.content
-                    await asyncio.sleep(0.5) 
-                    return json.loads(response_text)
+                    # Simple retry logic for rate limits
+                    max_retries = 2
+                    for attempt in range(max_retries):
+                        try:
+                            completion = await client.chat.completions.create(
+                                model=self.model,
+                                messages=[{"role": "user", "content": prompt}],
+                                max_tokens=800,
+                                response_format={"type": "json_object"}
+                            )
+                            response_text = completion.choices[0].message.content
+                            await asyncio.sleep(0.5) 
+                            return json.loads(response_text)
+                        except Exception as e:
+                            if attempt < max_retries - 1:
+                                await asyncio.sleep(1) # Wait and retry
+                                continue
+                            raise e
 
                 except Exception as e:
                     print(f"Error ranking candidate {candidate_name}: {e}")
