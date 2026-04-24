@@ -126,6 +126,7 @@ router.post("/jobs/create", requireAuth, upload.single("file"), async (req, res)
       headers['Authorization'] = `Bearer ${token}`;
     }
 
+    const fullUrl = `${apiClient.defaults.baseURL}/jobs`;
     const { data } = await apiClient.post("/jobs", form, { headers });
     return res.redirect(`/?jobId=${data.job_id}`);
   } catch (error) {
@@ -134,14 +135,16 @@ router.post("/jobs/create", requireAuth, upload.single("file"), async (req, res)
       || error.message 
       || "Job creation failed";
     const status = error.response?.status || 500;
+    const targetUrl = error.config?.url || "unknown";
+    const fullTarget = error.config?.baseURL ? `${error.config.baseURL}${targetUrl}` : targetUrl;
     
-    console.error(`Job creation error [${status}]:`, errorMsg);
+    console.error(`Job creation error [${status}] at ${fullTarget}:`, errorMsg);
     
     return res.status(400).render("layout", {
       page: "jobs",
       jobs: [],
       userProfile: res.locals.userProfile,
-      error: `Error (${status}): ${errorMsg}`,
+      error: `Error (${status}) at ${fullTarget}: ${errorMsg}`,
     });
   }
 });
