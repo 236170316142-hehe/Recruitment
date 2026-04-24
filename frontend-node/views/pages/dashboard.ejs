@@ -50,8 +50,8 @@
 
   <% if (selectedJobId && dashboard) { %>
     <section class="card rankings-section">
-      <h2>📊 Matched Candidates (High Level > <%= dashboard.threshold || 70 %>%)</h2>
-      <p class="meta">Total: <%= dashboard.total_candidates %> matches | Generated: <%= new Date(dashboard.generated_at).toLocaleString() %></p>
+      <h2>📊 All Matched Candidates</h2>
+      <p class="meta">Total: <%= dashboard.total_candidates %> matches | Generated: <%= new Date(dashboard.generated_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) %></p>
       
       <% if (dashboard.candidates.length === 0) { %>
         <div class="info-message">

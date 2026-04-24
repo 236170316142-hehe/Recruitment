@@ -491,46 +491,93 @@ async def judge_batch(
             detail=f"No resumes found for Job '{job.get('title', job_id)}'. Please upload resumes first."
         )
 
+    # Re-extract skills from stored text using the current (expanded) SKILL_LEXICON
+    # This fixes the problem where jobs/resumes stored with the old lexicon have stale skill lists
+    from app.services.parser import extract_skills
+    
+    # Re-extract JD skills
+    jd_text = job.get("text", "")
+    if jd_text:
+        fresh_jd_skills = extract_skills(jd_text)
+        if len(fresh_jd_skills) > len(job.get("required_skills", [])):
+            job["required_skills"] = fresh_jd_skills
+            await db.jobs.update_one(
+                {"job_id": job_id},
+                {"$set": {"required_skills": fresh_jd_skills}}
+            )
+    
+    # Re-extract resume skills
+    for resume in resumes:
+        resume_text = resume.get("text", "")
+        if resume_text:
+            fresh_skills = extract_skills(resume_text)
+            if len(fresh_skills) > len(resume.get("skills", [])):
+                resume["skills"] = fresh_skills
+                # Update DB in background (non-blocking)
+                await db.resumes.update_one(
+                    {"resume_id": resume["resume_id"]},
+                    {"$set": {"skills": fresh_skills}}
+                )
+    
+    logger.info(f"Matching {len(resumes)} resumes against job '{job.get('title')}' (required skills: {job.get('required_skills')})")
+    for r in resumes:
+        logger.info(f"  Resume '{r.get('candidate_name')}': skills={r.get('skills')}, exp={r.get('experience_years')}yrs, text_len={len(r.get('text',''))}")
+
     # Try Groq LLM ranking first if enabled
     ranked = []
     if settings.use_llm_scoring and settings.groq_api_key:
         ranker = GroqRanker()
-        groq_rankings = await ranker.rank_candidates(job["text"], resumes)
-        if groq_rankings:
-            # Enforce score-based confidence rules
-            for r in groq_rankings:
-                score = r.get("score", 0)
-                if score >= threshold:
-                    r["confidence"] = "HIGH"
-                elif score >= threshold // 2:
-                    r["confidence"] = "MEDIUM"
-                else:
-                    r["confidence"] = "LOW"
-            # Sort by score descending
-            groq_rankings.sort(key=lambda x: x.get("score", 0), reverse=True)
-            ranked = groq_rankings
+        try:
+            groq_rankings = await ranker.rank_candidates(job["text"], resumes)
+            if groq_rankings:
+                # Check if AI actually worked (not all zeros)
+                valid_count = sum(1 for r in groq_rankings if r.get("score", 0) > 0)
+                logger.info(f"Groq returned {len(groq_rankings)} results, {valid_count} with scores > 0")
+                if valid_count > 0:
+                    # Enforce score-based confidence rules
+                    for r in groq_rankings:
+                        score = r.get("score", 0)
+                        if score >= threshold:
+                            r["confidence"] = "HIGH"
+                        elif score >= threshold // 2:
+                            r["confidence"] = "MEDIUM"
+                        else:
+                            r["confidence"] = "LOW"
+                    groq_rankings.sort(key=lambda x: x.get("score", 0), reverse=True)
+                    ranked = groq_rankings
+        except Exception as e:
+            logger.error(f"Groq ranking failed entirely: {e}")
     
-    # Fallback to local scoring if LLM ranking fails, is disabled, or returns all zeros
-    if not ranked or all(r.get("score", 0) == 0 for r in ranked):
-        print("AI Ranking failed or returned all zeros. Falling back to local scoring.")
-        ranked = rank_candidates(job, resumes)
+    # Always run local scoring as backup data source
+    local_results = rank_candidates(job, resumes)
+    local_ranked = {r["resume_id"]: r for r in local_results}
+    
+    if not ranked:
+        logger.info("Using LOCAL scoring (AI unavailable or returned all zeros)")
+        # Use local scoring but enrich with strengths/weaknesses
+        for r in local_results:
+            strengths = []
+            if r.get("skills_match_score", 0) > 0: strengths.append(f"Skill Match ({int(r['skills_match_score'])}%)")
+            if r.get("jd_relevance_score", 0) > 30: strengths.append(f"JD Relevance ({int(r['jd_relevance_score'])}%)")
+            if r.get("experience_match_score", 0) > 50: strengths.append(f"Experience Fit ({int(r['experience_match_score'])}%)")
+            if not strengths: strengths.append("Candidate Identified")
+            r["strengths"] = strengths
+            r["weaknesses"] = r.get("missing_required_skills", [])
+            r["score"] = r.get("final_score", 0)
+        ranked = local_results
     else:
-        # Per-candidate fallback for specific failures
-        local_ranked = {r["resume_id"]: r for r in rank_candidates(job, resumes)}
+        # Groq worked - but fill in any zero-score candidates from local
         for r in ranked:
             if r.get("score", 0) == 0:
                 local_data = local_ranked.get(r["resume_id"], {})
                 r["score"] = local_data.get("final_score", 0)
                 r["confidence"] = local_data.get("confidence", "LOW")
                 r["reasoning"] = f"(Local Fallback) {local_data.get('reasoning', '')}"
-                
-                # Better fallback strengths/weaknesses
-                fallback_strengths = []
-                if local_data.get("jd_relevance_score", 0) > 20: fallback_strengths.append("JD Relevance")
-                if local_data.get("skills_match_score", 0) > 40: fallback_strengths.append("Skill Match")
-                if local_data.get("experience_match_score", 0) > 70: fallback_strengths.append("Experience Fit")
-                
-                r["strengths"] = fallback_strengths
+                strengths = []
+                if local_data.get("skills_match_score", 0) > 0: strengths.append(f"Skill Match ({int(local_data['skills_match_score'])}%)")
+                if local_data.get("jd_relevance_score", 0) > 30: strengths.append(f"JD Relevance ({int(local_data['jd_relevance_score'])}%)")
+                if local_data.get("experience_match_score", 0) > 50: strengths.append(f"Experience Fit ({int(local_data['experience_match_score'])}%)")
+                r["strengths"] = strengths if strengths else ["Candidate Identified"]
                 r["weaknesses"] = local_data.get("missing_required_skills", [])
 
     now = datetime.now(timezone.utc)
