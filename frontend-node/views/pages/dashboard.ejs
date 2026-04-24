@@ -212,16 +212,20 @@ function previewResume(resumeId, name, url, filename = '') {
     const container = document.getElementById('modal-docx-container');
     
     fetch(url)
-      .then(response => response.arrayBuffer())
+      .then(response => {
+        if (!response.ok) throw new Error('File not found or server error');
+        return response.arrayBuffer();
+      })
       .then(arrayBuffer => {
         docx.renderAsync(arrayBuffer, container)
           .catch(err => {
             console.error("docx error:", err);
-            body.innerHTML = '<p class="error-message">Error rendering Word document. Please download to view.</p>';
+            body.innerHTML = '<p class="error-message">Error rendering Word document. This file might be an older .doc format. Please download to view.</p>';
           });
       })
       .catch(err => {
-        body.innerHTML = '<p class="error-message">Failed to fetch resume file.</p>';
+        console.error("Fetch error:", err);
+        body.innerHTML = `<p class="error-message">Failed to load resume: ${err.message}. Please try downloading instead.</p>`;
       });
   } else {
     body.innerHTML = `
