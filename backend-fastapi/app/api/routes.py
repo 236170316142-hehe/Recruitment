@@ -410,7 +410,14 @@ async def list_resumes(
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    query = {"job_id": job_id, "user_id": current_user["user_id"]}
+    query = {
+        "job_id": job_id,
+        "$or": [
+            {"user_id": current_user["user_id"]},
+            {"user_id": {"$exists": False}},
+            {"user_id": None}
+        ]
+    }
     if source:
         query["source"] = source
 
@@ -467,12 +474,22 @@ async def judge_batch(
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
+    # Get resumes for this job
+    # Resiliency: Include resumes with matching job_id even if user_id is missing (legacy claim)
     resumes = await db.resumes.find({
         "job_id": job_id, 
-        "user_id": current_user["user_id"]
-    }).to_list(length=500)
+        "$or": [
+            {"user_id": current_user["user_id"]},
+            {"user_id": {"$exists": False}},
+            {"user_id": None}
+        ]
+    }).to_list(length=1000)
+    
     if not resumes:
-        raise HTTPException(status_code=400, detail="No resumes found for this job")
+        raise HTTPException(
+            status_code=400, 
+            detail=f"No resumes found for Job '{job.get('title', job_id)}'. Please upload resumes first."
+        )
 
     # Try Groq LLM ranking first if enabled
     ranked = []
@@ -659,11 +676,22 @@ async def search_candidates(
     resumes = await db.resumes.find(
         {
             "job_id": job_id,
-            "user_id": current_user["user_id"],
             "$or": [
-                {"candidate_name": {"$regex": query, "$options": "i"}},
-                {"email": {"$regex": query, "$options": "i"}},
-            ],
+                {
+                    "user_id": current_user["user_id"],
+                    "$or": [
+                        {"candidate_name": {"$regex": query, "$options": "i"}},
+                        {"email": {"$regex": query, "$options": "i"}},
+                    ]
+                },
+                {
+                    "user_id": {"$exists": False},
+                    "$or": [
+                        {"candidate_name": {"$regex": query, "$options": "i"}},
+                        {"email": {"$regex": query, "$options": "i"}},
+                    ]
+                }
+            ]
         }
     ).to_list(length=100)
 
