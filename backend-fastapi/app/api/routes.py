@@ -542,11 +542,21 @@ async def judge_batch(
         
         ranking_docs = []
         for i, item in enumerate(ranked, start=1):
-            # Ensure strengths/weaknesses are present
+            # Ensure strengths/weaknesses are present and never empty if score > 0
             s = item.get("strengths")
-            if s is None or (isinstance(s, list) and len(s) == 0):
-                # Second attempt fallback for strengths
-                s = ["Matched Skills"] if item.get("score", 0) > 50 else []
+            w = item.get("weaknesses")
+            
+            if not s or len(s) == 0:
+                # Guaranteed fallback strengths
+                s = []
+                if item.get("score", 0) > 40: s.append("Partial Skill Match")
+                if item.get("score", 0) > 20: s.append("JD Relevance")
+                if not s: s.append("Candidate Identified")
+                
+            if not w or len(w) == 0:
+                # Guaranteed fallback weaknesses from missing skills
+                w = item.get("missing_required_skills", [])
+                if not w: w.append("General evaluation")
 
             ranking_docs.append(
                 {
@@ -558,7 +568,7 @@ async def judge_batch(
                     "confidence": item.get("confidence", "MEDIUM"),
                     "reasoning": item.get("reasoning", ""),
                     "strengths": s,
-                    "weaknesses": item.get("weaknesses", []),
+                    "weaknesses": w,
                     "created_at": now,
                 }
             )
