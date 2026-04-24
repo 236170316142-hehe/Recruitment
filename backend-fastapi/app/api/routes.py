@@ -506,7 +506,12 @@ async def judge_batch(
                 r["score"] = local_data.get("final_score", 0)
                 r["confidence"] = local_data.get("confidence", "LOW")
                 r["reasoning"] = f"(Local Fallback) {local_data.get('reasoning', '')}"
-                r["strengths"] = local_data.get("skills_match_score", 0) > 0 and ["Strong Skill Match"] or []
+                
+                # Better fallback strengths/weaknesses
+                strengths = []
+                if local_data.get("jd_relevance_score", 0) > 30: strengths.append("Good JD Relevance")
+                if local_data.get("skills_match_score", 0) > 50: strengths.append("Strong Skill Match")
+                r["strengths"] = strengths
                 r["weaknesses"] = local_data.get("missing_required_skills", [])
 
     now = datetime.now(timezone.utc)
