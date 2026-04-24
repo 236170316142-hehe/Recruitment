@@ -111,7 +111,7 @@
                 </td>
                 <td class="actions-cell">
                   <a href="/candidate/<%= candidate.resume_id %>" class="btn btn-sm btn-secondary">View</a>
-                  <a href="<%= candidate.resume_url %>" target="_blank" class="btn btn-sm btn-accent">Resume</a>
+                  <button onclick="previewResume('<%= candidate.resume_id %>', '<%= candidate.name %>', '<%= candidate.resume_url %>')" class="btn btn-sm btn-accent">Resume</button>
                 </td>
               </tr>
             <% }) %>
@@ -129,6 +129,26 @@
     </section>
   <% } %>
 </div>
+
+<!-- Resume Preview Modal -->
+<div id="resumeModal" class="resume-modal">
+  <div class="resume-modal-content">
+    <div class="resume-modal-header">
+      <h3 id="modalCandidateName">Resume Preview</h3>
+      <span class="close-modal" onclick="closeResumeModal()">&times;</span>
+    </div>
+    <div id="modalResumeBody" class="resume-modal-body">
+      <!-- Preview will be injected here -->
+    </div>
+    <div class="resume-modal-footer">
+      <a id="downloadResumeBtn" href="#" target="_blank" class="btn btn-primary btn-sm">📥 Download Original</a>
+    </div>
+  </div>
+</div>
+
+<!-- Dependencies for Word Preview -->
+<script src="https://unpkg.com/jszip/dist/jszip.min.js"></script>
+<script src="https://unpkg.com/docx-preview/dist/docx-preview.js"></script>
 
 <script>
 function handleJobFilterChange(jobId) {
@@ -170,4 +190,157 @@ function generateRankings() {
       alert('Error matching candidates: ' + err.message);
     });
 }
+
+function previewResume(resumeId, name, url) {
+  const modal = document.getElementById('resumeModal');
+  const body = document.getElementById('modalResumeBody');
+  const nameEl = document.getElementById('modalCandidateName');
+  const downloadBtn = document.getElementById('downloadResumeBtn');
+  
+  nameEl.innerText = `Resume: ${name}`;
+  downloadBtn.href = url;
+  body.innerHTML = '<div class="loading-spinner">⌛ Loading resume...</div>';
+  modal.style.display = 'block';
+  document.body.style.overflow = 'hidden'; // Prevent scroll
+
+  if (url.toLowerCase().endsWith('.pdf')) {
+    body.innerHTML = `<iframe src="${url}" class="resume-iframe"></iframe>`;
+  } else if (url.toLowerCase().endsWith('.docx')) {
+    body.innerHTML = '<div id="modal-docx-container"></div>';
+    const container = document.getElementById('modal-docx-container');
+    
+    fetch(url)
+      .then(response => response.arrayBuffer())
+      .then(arrayBuffer => {
+        docx.renderAsync(arrayBuffer, container)
+          .catch(err => {
+            console.error("docx error:", err);
+            body.innerHTML = '<p class="error-message">Error rendering Word document. Please download to view.</p>';
+          });
+      })
+      .catch(err => {
+        body.innerHTML = '<p class="error-message">Failed to fetch resume file.</p>';
+      });
+  } else {
+    body.innerHTML = `
+      <div class="viewer-fallback">
+        <p>Direct preview not available for this file type.</p>
+        <a href="${url}" target="_blank" class="btn btn-primary">📥 Download to View</a>
+      </div>`;
+  }
+}
+
+function closeResumeModal() {
+  const modal = document.getElementById('resumeModal');
+  modal.style.display = 'none';
+  document.body.style.overflow = 'auto'; // Restore scroll
+  document.getElementById('modalResumeBody').innerHTML = '';
+}
+
+// Close on click outside
+window.onclick = function(event) {
+  const modal = document.getElementById('resumeModal');
+  if (event.target == modal) {
+    closeResumeModal();
+  }
+}
 </script>
+
+<style>
+.resume-modal {
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+}
+
+.resume-modal-content {
+  background-color: #fefefe;
+  margin: 2% auto;
+  padding: 0;
+  border-radius: 12px;
+  width: 85%;
+  max-width: 1000px;
+  height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+  overflow: hidden;
+}
+
+.resume-modal-header {
+  padding: 16px 24px;
+  background: var(--bg-white);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.resume-modal-header h3 {
+  margin: 0;
+  color: var(--text-dark);
+}
+
+.close-modal {
+  color: var(--text-light);
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.close-modal:hover {
+  color: var(--error-color);
+}
+
+.resume-modal-body {
+  flex: 1;
+  background: #f1f5f9;
+  position: relative;
+  overflow: hidden;
+}
+
+.resume-modal-body .resume-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+#modal-docx-container {
+  height: 100%;
+  overflow-y: auto;
+  background: white;
+  padding: 40px;
+}
+
+.resume-modal-footer {
+  padding: 12px 24px;
+  background: var(--bg-white);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  font-size: 1.2rem;
+  color: var(--text-light);
+}
+
+/* Override docx-preview for modal */
+.resume-modal-body .docx-wrapper {
+  background: transparent !important;
+  padding: 0 !important;
+}
+.resume-modal-body .docx {
+  box-shadow: 0 0 10px rgba(0,0,0,0.1) !important;
+}
+</style>
