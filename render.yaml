@@ -25,7 +25,7 @@ services:
       - key: GOOGLE_CLIENT_SECRET
         sync: false
       - key: GOOGLE_REDIRECT_URI
-        value: https://recruitment-backend.onrender.com/auth/google/callback
+        value: https://recruitment-backend-vjye.onrender.com/auth/google/callback
       - key: JWT_SECRET_KEY
         sync: false
       - key: JWT_ALGORITHM

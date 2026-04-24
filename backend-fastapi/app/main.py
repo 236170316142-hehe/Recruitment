@@ -13,17 +13,20 @@ from app.db.mongo import close_client, get_db
 async def lifespan(_: FastAPI):
     db = get_db()
     
-    # Create indexes for job/resume collections
-    await db.jobs.create_index("job_id", unique=True)
-    await db.resumes.create_index("resume_id", unique=True)
-    await db.resumes.create_index([("job_id", 1), ("source", 1)])
-    await db.rankings.create_index([("job_id", 1), ("final_score", -1)])
-    await db.rankings.create_index([("job_id", 1), ("rank", 1)])
-    
-    # Create indexes for user collection
-    await db.users.create_index("user_id", unique=True)
-    await db.users.create_index("google_id", unique=True)
-    await db.users.create_index("email")
+    try:
+        # Create indexes for job/resume collections
+        await db.jobs.create_index("job_id", unique=True)
+        await db.resumes.create_index("resume_id", unique=True)
+        await db.resumes.create_index([("job_id", 1), ("source", 1)])
+        await db.rankings.create_index([("job_id", 1), ("final_score", -1)])
+        await db.rankings.create_index([("job_id", 1), ("rank", 1)])
+        
+        # Create indexes for user collection
+        await db.users.create_index("user_id", unique=True)
+        await db.users.create_index("google_id", unique=True)
+        await db.users.create_index("email")
+    except Exception as e:
+        print(f"Index creation skipped/failed: {e}")
     
     yield
     await close_client()
