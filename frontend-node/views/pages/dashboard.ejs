@@ -111,7 +111,7 @@
                 </td>
                 <td class="actions-cell">
                   <a href="/candidate/<%= candidate.resume_id %>" class="btn btn-sm btn-secondary">View</a>
-                  <button onclick="previewResume('<%= candidate.resume_id %>', '<%= candidate.name %>', '<%= candidate.resume_url %>')" class="btn btn-sm btn-accent">Resume</button>
+                  <button onclick="previewResume('<%= candidate.resume_id %>', '<%= candidate.name %>', '<%= candidate.resume_url %>', '<%= candidate.filename %>')" class="btn btn-sm btn-accent">Resume</button>
                 </td>
               </tr>
             <% }) %>
@@ -191,7 +191,7 @@ function generateRankings() {
     });
 }
 
-function previewResume(resumeId, name, url) {
+function previewResume(resumeId, name, url, filename = '') {
   const modal = document.getElementById('resumeModal');
   const body = document.getElementById('modalResumeBody');
   const nameEl = document.getElementById('modalCandidateName');
@@ -203,9 +203,11 @@ function previewResume(resumeId, name, url) {
   modal.style.display = 'block';
   document.body.style.overflow = 'hidden'; // Prevent scroll
 
-  if (url.toLowerCase().endsWith('.pdf')) {
+  const ext = (filename || '').toLowerCase().split('.').pop();
+
+  if (ext === 'pdf') {
     body.innerHTML = `<iframe src="${url}" class="resume-iframe"></iframe>`;
-  } else if (url.toLowerCase().endsWith('.docx')) {
+  } else if (ext === 'docx') {
     body.innerHTML = '<div id="modal-docx-container"></div>';
     const container = document.getElementById('modal-docx-container');
     
@@ -224,7 +226,7 @@ function previewResume(resumeId, name, url) {
   } else {
     body.innerHTML = `
       <div class="viewer-fallback">
-        <p>Direct preview not available for this file type.</p>
+        <p>Direct preview not available for this file type (${ext.toUpperCase()}).</p>
         <a href="${url}" target="_blank" class="btn btn-primary">📥 Download to View</a>
       </div>`;
   }

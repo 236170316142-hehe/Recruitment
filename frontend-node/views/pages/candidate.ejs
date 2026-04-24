@@ -88,9 +88,10 @@
   <section class="card candidate-section resume-viewer-section">
     <h2>📄 Resume Preview</h2>
     <div id="resumeContainer" class="resume-viewer-container">
-      <% if (candidate.resume_url.toLowerCase().endsWith('.pdf')) { %>
+      <% const ext = (candidate.filename || '').toLowerCase().split('.').pop(); %>
+      <% if (ext === 'pdf') { %>
         <iframe src="<%= candidate.resume_url %>" class="resume-iframe" title="Resume Preview"></iframe>
-      <% } else if (candidate.resume_url.toLowerCase().endsWith('.docx')) { %>
+      <% } else if (ext === 'docx') { %>
         <div id="docx-container"></div>
         <script src="https://unpkg.com/jszip/dist/jszip.min.js"></script>
         <script src="https://unpkg.com/docx-preview/dist/docx-preview.js"></script>
@@ -113,7 +114,7 @@
         </script>
       <% } else { %>
         <div class="viewer-fallback">
-          <p>Preview not available for this file type (<%= candidate.resume_url.split('.').pop().toUpperCase() %>).</p>
+          <p>Preview not available for this file type (<%= ext.toUpperCase() %>).</p>
           <a href="<%= candidate.resume_url %>" target="_blank" class="btn btn-primary">
             📥 Open/Download Resume
           </a>

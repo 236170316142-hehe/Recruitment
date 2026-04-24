@@ -545,6 +545,7 @@ async def dashboard(
             "reasoning": ranking.get("reasoning", ""),
             "strengths": ranking.get("strengths", []),
             "weaknesses": ranking.get("weaknesses", []),
+            "filename": resume.get("filename", ""),
             "resume_url": f"/resume/{ranking.get('resume_id')}",
         }
         candidates.append(candidate)
@@ -627,6 +628,7 @@ async def get_candidate_detail(resume_id: str):
         "reasoning": ranking.get("reasoning", "") if ranking else "",
         "strengths": ranking.get("strengths", []) if ranking else [],
         "weaknesses": ranking.get("weaknesses", []) if ranking else [],
+        "filename": resume.get("filename", ""),
         "resume_url": f"/resume/{resume_id}",
     }
     return result
