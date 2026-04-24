@@ -497,11 +497,25 @@ async def judge_batch(
     if not ranked or all(r.get("score", 0) == 0 for r in ranked):
         print("AI Ranking failed or returned all zeros. Falling back to local scoring.")
         ranked = rank_candidates(job, resumes)
+    else:
+        # Per-candidate fallback for specific failures
+        local_ranked = {r["resume_id"]: r for r in rank_candidates(job, resumes)}
+        for r in ranked:
+            if r.get("score", 0) == 0:
+                local_data = local_ranked.get(r["resume_id"], {})
+                r["score"] = local_data.get("final_score", 0)
+                r["confidence"] = local_data.get("confidence", "LOW")
+                r["reasoning"] = f"(Local Fallback) {local_data.get('reasoning', '')}"
+                r["strengths"] = local_data.get("skills_match_score", 0) > 0 and ["Strong Skill Match"] or []
+                r["weaknesses"] = local_data.get("missing_required_skills", [])
 
     now = datetime.now(timezone.utc)
     await db.rankings.delete_many({"job_id": job_id})
     
     if ranked:
+        # Re-sort after potential fallback updates
+        ranked.sort(key=lambda x: x.get("score", 0), reverse=True)
+        
         ranking_docs = []
         for i, item in enumerate(ranked, start=1):
             ranking_docs.append(
@@ -514,7 +528,7 @@ async def judge_batch(
                     "confidence": item.get("confidence", "MEDIUM"),
                     "reasoning": item.get("reasoning", ""),
                     "strengths": item.get("strengths", []),
-                    "weaknesses": item.get("weaknesses", item.get("missing_required_skills", [])),
+                    "weaknesses": item.get("weaknesses", []),
                     "created_at": now,
                 }
             )
