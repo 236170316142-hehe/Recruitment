@@ -89,8 +89,12 @@
           <% }) %>
         </div>
         <div class="ranking-action">
+          <div class="threshold-selector">
+            <label for="matchThreshold">Matching Threshold: <span id="thresholdValue">70</span>%</label>
+            <input type="range" id="matchThreshold" min="10" max="95" value="70" step="5" oninput="document.getElementById('thresholdValue').innerText = this.value" class="slider" />
+          </div>
           <button onclick="startRanking('<%= selectedJobId %>')" class="btn btn-primary">
-            🚀 Match Candidates (>70% Match)
+            🚀 Match Candidates
           </button>
         </div>
       <% } else { %>
@@ -143,15 +147,17 @@ function toggleSource(source) {
 async function startRanking(jobId) {
   if (!jobId) return;
   
+  const threshold = document.getElementById('matchThreshold').value;
   const statusEl = document.getElementById('uploadStatus');
-  statusEl.innerHTML = '<div class="alert alert-info">🤖 AI is finding matched candidates... This may take a moment.</div>';
+  statusEl.innerHTML = `<div class="alert alert-info">🤖 AI is finding candidates matching >${threshold}%... This may take a moment.</div>`;
   
   try {
     const response = await fetch(`/api/judge-batch/${jobId}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-      }
+      },
+      body: JSON.stringify({ threshold })
     });
     
     const data = await response.json();

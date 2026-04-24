@@ -424,7 +424,7 @@ async def delete_resume(resume_id: str):
 
 
 @router.post("/judge-batch/{job_id}", response_model=RankingResponse)
-async def judge_batch(job_id: str):
+async def judge_batch(job_id: str, threshold: int = Query(70)):
     """Run LLM batch ranking for a job."""
     db = get_db()
     job = await db.jobs.find_one({"job_id": job_id})
@@ -444,9 +444,9 @@ async def judge_batch(job_id: str):
             # Enforce score-based confidence rules
             for r in groq_rankings:
                 score = r.get("score", 0)
-                if score >= 70:
+                if score >= threshold:
                     r["confidence"] = "HIGH"
-                elif score >= 40:
+                elif score >= threshold // 2:
                     r["confidence"] = "MEDIUM"
                 else:
                     r["confidence"] = "LOW"
@@ -600,7 +600,8 @@ async def get_resume_file(resume_id: str):
         raise HTTPException(status_code=404, detail="Resume file is missing")
 
     media_type = "application/pdf" if file_path.suffix.lower() == ".pdf" else "application/octet-stream"
-    return FileResponse(path=file_path, media_type=media_type, filename=resume.get("filename", os.path.basename(file_path)))
+    # Use content_disposition_type="inline" to view in browser instead of downloading
+    return FileResponse(path=file_path, media_type=media_type, content_disposition_type="inline")
 
 
 @router.get("/candidate/{resume_id}")

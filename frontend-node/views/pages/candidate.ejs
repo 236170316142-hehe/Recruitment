@@ -85,12 +85,25 @@
     <% } %>
   </section>
 
-  <section class="card candidate-section">
-    <h2>📄 Resume</h2>
-    <a href="<%= candidate.resume_url %>" target="_blank" class="btn btn-primary">
-      📥 Open Original Resume
-    </a>
-    <p class="info-message">This link opens the exact file uploaded, ensuring no mix-up between candidates.</p>
+  <section class="card candidate-section resume-viewer-section">
+    <h2>📄 Resume Preview</h2>
+    <div class="resume-viewer-container">
+      <% if (candidate.resume_url.toLowerCase().endsWith('.pdf')) { %>
+        <iframe src="<%= candidate.resume_url %>" class="resume-iframe" title="Resume Preview"></iframe>
+      <% } else { %>
+        <div class="viewer-fallback">
+          <p>Preview not available for this file type.</p>
+          <a href="<%= candidate.resume_url %>" target="_blank" class="btn btn-primary">
+            📥 Open/Download Resume
+          </a>
+        </div>
+      <% } %>
+    </div>
+    <div class="viewer-actions">
+      <a href="<%= candidate.resume_url %>" target="_blank" class="btn btn-secondary btn-sm">
+        ↗️ Open in New Tab
+      </a>
+    </div>
   </section>
 
   <div class="candidate-actions">

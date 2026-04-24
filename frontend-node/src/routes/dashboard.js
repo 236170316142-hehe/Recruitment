@@ -392,10 +392,11 @@ router.delete("/api/resumes/:resumeId", requireAuth, async (req, res) => {
 
 router.post("/api/judge-batch/:jobId", requireAuth, async (req, res) => {
   const { jobId } = req.params;
+  const { threshold = 70 } = req.body;
   const token = getAuthToken(req);
 
   try {
-    const { data } = await apiClient.post(`/judge-batch/${jobId}`, {}, {
+    const { data } = await apiClient.post(`/judge-batch/${jobId}?threshold=${threshold}`, {}, {
       headers: token ? { 'Authorization': `Bearer ${token}` } : {}
     });
     return res.json(data);
