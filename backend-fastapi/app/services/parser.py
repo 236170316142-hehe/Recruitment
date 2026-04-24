@@ -97,8 +97,8 @@ def parse_jd(text: str) -> dict:
 
 
 def is_resume(text: str) -> bool:
-    """Heuristic to determine if a document is a resume."""
-    if not text:
+    """Heuristic to determine if a document is a resume - Relaxed version."""
+    if not text or len(text.strip()) < 50:
         return False
     
     lowered = text.lower()
@@ -106,33 +106,14 @@ def is_resume(text: str) -> bool:
         "experience", "education", "skills", "employment", 
         "summary", "professional", "projects", "university", 
         "curriculum vitae", "cv", "resume", "objective",
-        "contacts", "work history", "academic", "profile"
-    }
-    negative_indicators = {
-        "registration", "workshop", "certification program", 
-        "course overview", "pamphlet", "flyer", "workshop session",
-        "eligibility", "membership", "advertisement", "invitation to",
-        "upcoming", "join us", "program date"
+        "contacts", "work history", "academic", "profile", "internship"
     }
     
     # Check indicators
     matches = sum(1 for indicator in resume_indicators if indicator in lowered)
-    neg_matches = sum(1 for neg in negative_indicators if neg in lowered)
     
-    # Core requirements
-    has_core_section = any(core in lowered for core in ["experience", "education", "work history", "academic"])
-    
-    # Strictly reject if it has high negative indicators
-    if neg_matches >= 1 and matches < 3:
-        return False
-    if neg_matches >= 2:
-        return False
-        
-    # If it has 3 or more indicators AND at least one core section
-    if "curriculum vitae" in lowered or "resume" in lowered:
-        return matches >= 2 and neg_matches == 0
-        
-    return matches >= 3 and has_core_section and neg_matches == 0
+    # Very basic check: just needs to look like a document with at least some professional keywords
+    return matches >= 1
 
 
 def parse_resume(text: str, fallback_name: str) -> dict:
