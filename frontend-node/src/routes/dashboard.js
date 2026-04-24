@@ -415,12 +415,14 @@ router.get("/resume/:resumeId", requireAuth, async (req, res) => {
       responseType: 'arraybuffer'
     });
     
-    res.set('Content-Type', response.headers['content-type'] || 'application/pdf');
-    res.set('Content-Disposition', response.headers['content-disposition'] || 'inline');
+    const contentType = response.headers['content-type'] || 'application/pdf';
+    res.set('Content-Type', contentType);
+    res.set('Content-Disposition', 'inline');
     return res.send(Buffer.from(response.data));
   } catch (error) {
-    console.error("Error proxying resume:", error.message);
-    return res.status(404).send("Resume file not found");
+    console.error("Error proxying resume:", error.response?.data ? error.response.data.toString() : error.message);
+    const status = error.response?.status || 404;
+    return res.status(status).send(error.response?.data ? error.response.data.toString() : "Resume file not found");
   }
 });
 
