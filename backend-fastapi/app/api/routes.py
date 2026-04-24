@@ -40,7 +40,11 @@ async def health() -> dict:
 
 
 @router.post("/jobs", response_model=JDUploadResponse)
-async def create_job(file: UploadFile | None = File(default=None), text: str = Form(default="")):
+async def create_job(
+    file: UploadFile | None = File(default=None), 
+    text: str = Form(default=""),
+    current_user: dict = Depends(get_current_user)
+):
     """Create a new job with JD."""
     db = get_db()
     jd_text = text.strip()
@@ -72,6 +76,7 @@ async def create_job(file: UploadFile | None = File(default=None), text: str = F
             "text": parsed["text"],
             "required_skills": parsed["required_skills"],
             "min_experience_years": parsed["min_experience_years"],
+            "user_id": current_user["user_id"],
             "status": "active",
             "created_at": now,
             "updated_at": now,
@@ -93,20 +98,26 @@ async def upload_jd(file: UploadFile | None = File(default=None), text: str = Fo
 
 
 @router.get("/jobs")
-async def list_jobs():
-    """List all active jobs."""
+async def list_jobs(current_user: dict = Depends(get_current_user)):
+    """List all active jobs for the current user."""
     db = get_db()
-    jobs = await db.jobs.find({"status": "active"}).sort("created_at", -1).to_list(length=50)
+    jobs = await db.jobs.find({
+        "status": "active",
+        "user_id": current_user["user_id"]
+    }).sort("created_at", -1).to_list(length=50)
     for job in jobs:
         job.pop("_id", None)
     return {"jobs": jobs}
 
 
 @router.get("/jobs/{job_id}")
-async def get_job(job_id: str):
-    """Get job details."""
+async def get_job(job_id: str, current_user: dict = Depends(get_current_user)):
+    """Get job details for the current user."""
     db = get_db()
-    job = await db.jobs.find_one({"job_id": job_id})
+    job = await db.jobs.find_one({
+        "job_id": job_id,
+        "user_id": current_user["user_id"]
+    })
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     job.pop("_id", None)
@@ -114,10 +125,13 @@ async def get_job(job_id: str):
 
 
 @router.delete("/jobs/{job_id}")
-async def delete_job(job_id: str):
-    """Delete a job and all its resumes/rankings."""
+async def delete_job(job_id: str, current_user: dict = Depends(get_current_user)):
+    """Delete a job and all its resumes/rankings if owned by the user."""
     db = get_db()
-    job = await db.jobs.find_one({"job_id": job_id})
+    job = await db.jobs.find_one({
+        "job_id": job_id,
+        "user_id": current_user["user_id"]
+    })
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     
@@ -139,9 +153,16 @@ async def upload_resumes_new(
     job_id: str = Form(...),
     source: Literal["manual", "gmail"] = Form(default="manual"),
     files: list[UploadFile] = File(...),
+    current_user: dict = Depends(get_current_user)
 ):
-    """Upload resumes for a job."""
+    """Upload resumes for a job owned by the current user."""
     db = get_db()
+    
+    # Verify job ownership
+    job = await db.jobs.find_one({"job_id": job_id, "user_id": current_user["user_id"]})
+    if not job:
+        raise HTTPException(status_code=403, detail="Not authorized to upload to this job")
+    
     created = []
     skipped_count = 0
     now = datetime.now(timezone.utc)
@@ -202,6 +223,7 @@ async def upload_resumes_new(
             "phone": parsed["phone"],
             "skills": parsed["skills"],
             "experience_years": parsed["experience_years"],
+            "user_id": current_user["user_id"],
             "status": "pending_ranking",
             "created_at": now,
             "updated_at": now,
@@ -232,8 +254,8 @@ async def fetch_resumes_gmail(
     """Fetch resumes from active Gmail account for a job."""
     db = get_db()
     
-    # Verify job
-    job = await db.jobs.find_one({"job_id": job_id})
+    # Verify job ownership
+    job = await db.jobs.find_one({"job_id": job_id, "user_id": current_user["user_id"]})
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
@@ -334,6 +356,7 @@ async def fetch_resumes_gmail(
                 "phone": parsed["phone"],
                 "skills": parsed["skills"],
                 "experience_years": parsed["experience_years"],
+                "user_id": current_user["user_id"],
                 "status": "pending_ranking",
                 "created_at": now,
                 "updated_at": now,
@@ -378,10 +401,16 @@ async def list_resumes(
     source: str = Query(None),
     skip: int = Query(0),
     limit: int = Query(100),
+    current_user: dict = Depends(get_current_user)
 ):
-    """List resumes for a job with optional filtering."""
+    """List resumes for a job owned by the current user."""
     db = get_db()
-    query = {"job_id": job_id}
+    # Verify job ownership
+    job = await db.jobs.find_one({"job_id": job_id, "user_id": current_user["user_id"]})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    query = {"job_id": job_id, "user_id": current_user["user_id"]}
     if source:
         query["source"] = source
 
@@ -393,11 +422,14 @@ async def list_resumes(
 
 
 @router.delete("/resumes/{resume_id}")
-async def delete_resume(resume_id: str):
-    """Delete an individual resume and its physical file."""
+async def delete_resume(resume_id: str, current_user: dict = Depends(get_current_user)):
+    """Delete an individual resume owned by the user."""
     db = get_db()
     
-    resume = await db.resumes.find_one({"resume_id": resume_id})
+    resume = await db.resumes.find_one({
+        "resume_id": resume_id,
+        "user_id": current_user["user_id"]
+    })
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found")
         
@@ -424,14 +456,21 @@ async def delete_resume(resume_id: str):
 
 
 @router.post("/judge-batch/{job_id}", response_model=RankingResponse)
-async def judge_batch(job_id: str, threshold: int = Query(70)):
-    """Run LLM batch ranking for a job."""
+async def judge_batch(
+    job_id: str, 
+    threshold: int = Query(70),
+    current_user: dict = Depends(get_current_user)
+):
+    """Run LLM batch ranking for a job owned by the user."""
     db = get_db()
-    job = await db.jobs.find_one({"job_id": job_id})
+    job = await db.jobs.find_one({"job_id": job_id, "user_id": current_user["user_id"]})
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    resumes = await db.resumes.find({"job_id": job_id}).to_list(length=500)
+    resumes = await db.resumes.find({
+        "job_id": job_id, 
+        "user_id": current_user["user_id"]
+    }).to_list(length=500)
     if not resumes:
         raise HTTPException(status_code=400, detail="No resumes found for this job")
 
@@ -508,17 +547,24 @@ async def dashboard(
     confidence: str = Query(None),
     source: str = Query(None),
     search: str = Query(None),
+    current_user: dict = Depends(get_current_user)
 ):
-    """Get ranked dashboard with optional filters."""
+    """Get ranked dashboard for a job owned by the user."""
     db = get_db()
     
     # Get job
-    job = await db.jobs.find_one({"job_id": job_id})
+    job = await db.jobs.find_one({
+        "job_id": job_id,
+        "user_id": current_user["user_id"]
+    })
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
     # Get rankings
     ranking_query = {"job_id": job_id}
+    # Optional: We could add user_id to rankings too, but since job_id is user-specific, it's safe.
+    # But let's check job ownership already (done above).
+    
     rankings = await db.rankings.find(ranking_query).sort("rank", 1).to_list(length=500)
     if not rankings:
         return RankingResponse(
@@ -575,12 +621,17 @@ async def dashboard(
 
 
 @router.get("/candidates/search")
-async def search_candidates(job_id: str, query: str = Query(...)):
-    """Search candidates by name or email."""
+async def search_candidates(
+    job_id: str, 
+    query: str = Query(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Search candidates by name or email owned by the user."""
     db = get_db()
     resumes = await db.resumes.find(
         {
             "job_id": job_id,
+            "user_id": current_user["user_id"],
             "$or": [
                 {"candidate_name": {"$regex": query, "$options": "i"}},
                 {"email": {"$regex": query, "$options": "i"}},
@@ -600,10 +651,13 @@ async def search_candidates(job_id: str, query: str = Query(...)):
 
 
 @router.get("/resume/{resume_id}")
-async def get_resume_file(resume_id: str):
-    """Open exact original resume file by ID."""
+async def get_resume_file(resume_id: str, current_user: dict = Depends(get_current_user)):
+    """Open exact original resume file by ID owned by the user."""
     db = get_db()
-    resume = await db.resumes.find_one({"resume_id": resume_id})
+    resume = await db.resumes.find_one({
+        "resume_id": resume_id,
+        "user_id": current_user["user_id"]
+    })
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found")
 
@@ -617,10 +671,13 @@ async def get_resume_file(resume_id: str):
 
 
 @router.get("/candidate/{resume_id}")
-async def get_candidate_detail(resume_id: str):
-    """Get full candidate detail including ranking."""
+async def get_candidate_detail(resume_id: str, current_user: dict = Depends(get_current_user)):
+    """Get full candidate detail owned by the user."""
     db = get_db()
-    resume = await db.resumes.find_one({"resume_id": resume_id})
+    resume = await db.resumes.find_one({
+        "resume_id": resume_id,
+        "user_id": current_user["user_id"]
+    })
     if not resume:
         raise HTTPException(status_code=404, detail="Candidate not found")
 
