@@ -58,32 +58,43 @@ async def create_job(file: UploadFile | None = File(default=None), text: str = F
         storage_path.write_bytes(contents)
         jd_text = extract_text(storage_path)
 
-    if not jd_text:
-        raise HTTPException(status_code=400, detail="Provide JD text or upload a valid JD file")
+    try:
+        if not jd_text:
+            raise HTTPException(status_code=400, detail="Provide JD text or upload a valid JD file")
 
-    parsed = parse_jd(jd_text)
-    job_id = str(uuid4())
-    now = datetime.now(timezone.utc)
+        print(f"Parsing JD text: {jd_text[:100]}...")
+        parsed = parse_jd(jd_text)
+        print(f"Parsed JD: {parsed}")
+        
+        job_id = str(uuid4())
+        now = datetime.now(timezone.utc)
 
-    await db.jobs.insert_one(
-        {
-            "job_id": job_id,
-            "title": parsed["title"],
-            "text": parsed["text"],
-            "required_skills": parsed["required_skills"],
-            "min_experience_years": parsed["min_experience_years"],
-            "status": "active",
-            "created_at": now,
-            "updated_at": now,
-        }
-    )
+        print(f"Inserting job {job_id} into DB...")
+        await db.jobs.insert_one(
+            {
+                "job_id": job_id,
+                "title": parsed["title"],
+                "text": parsed["text"],
+                "required_skills": parsed["required_skills"],
+                "min_experience_years": parsed["min_experience_years"],
+                "status": "active",
+                "created_at": now,
+                "updated_at": now,
+            }
+        )
+        print("Job inserted successfully.")
 
-    return JDUploadResponse(
-        job_id=job_id,
-        title=parsed["title"],
-        required_skills=parsed["required_skills"],
-        min_experience_years=parsed["min_experience_years"],
-    )
+        return JDUploadResponse(
+            job_id=job_id,
+            title=parsed["title"],
+            required_skills=parsed["required_skills"],
+            min_experience_years=parsed["min_experience_years"],
+        )
+    except Exception as e:
+        print(f"Error in create_job: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 
 @router.post("/upload-jd", response_model=JDUploadResponse)
