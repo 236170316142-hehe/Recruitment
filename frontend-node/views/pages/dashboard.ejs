@@ -48,9 +48,9 @@
     </div>
   </section>
 
-  <% if (selectedJobId) { %>
+  <% if (selectedJobId && dashboard) { %>
     <section class="card rankings-section">
-      <h2>📊 Matched Candidates (High Level > <%= dashboard.threshold %>%)</h2>
+      <h2>📊 Matched Candidates (High Level > <%= dashboard.threshold || 70 %>%)</h2>
       <p class="meta">Total: <%= dashboard.total_candidates %> matches | Generated: <%= new Date(dashboard.generated_at).toLocaleString() %></p>
       
       <% if (dashboard.candidates.length === 0) { %>

@@ -524,6 +524,7 @@ async def dashboard(
         return RankingResponse(
             job_id=job_id,
             total_candidates=0,
+            threshold=job.get("last_threshold", 70),
             generated_at=datetime.now(timezone.utc),
             candidates=[],
         )
