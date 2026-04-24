@@ -508,10 +508,12 @@ async def judge_batch(
                 r["reasoning"] = f"(Local Fallback) {local_data.get('reasoning', '')}"
                 
                 # Better fallback strengths/weaknesses
-                strengths = []
-                if local_data.get("jd_relevance_score", 0) > 30: strengths.append("Good JD Relevance")
-                if local_data.get("skills_match_score", 0) > 50: strengths.append("Strong Skill Match")
-                r["strengths"] = strengths
+                fallback_strengths = []
+                if local_data.get("jd_relevance_score", 0) > 20: fallback_strengths.append("JD Relevance")
+                if local_data.get("skills_match_score", 0) > 40: fallback_strengths.append("Skill Match")
+                if local_data.get("experience_match_score", 0) > 70: fallback_strengths.append("Experience Fit")
+                
+                r["strengths"] = fallback_strengths
                 r["weaknesses"] = local_data.get("missing_required_skills", [])
 
     now = datetime.now(timezone.utc)
@@ -523,6 +525,12 @@ async def judge_batch(
         
         ranking_docs = []
         for i, item in enumerate(ranked, start=1):
+            # Ensure strengths/weaknesses are present
+            s = item.get("strengths")
+            if s is None or (isinstance(s, list) and len(s) == 0):
+                # Second attempt fallback for strengths
+                s = ["Matched Skills"] if item.get("score", 0) > 50 else []
+
             ranking_docs.append(
                 {
                     "ranking_id": str(uuid4()),
@@ -532,7 +540,7 @@ async def judge_batch(
                     "score": item.get("score", item.get("final_score", 0)),
                     "confidence": item.get("confidence", "MEDIUM"),
                     "reasoning": item.get("reasoning", ""),
-                    "strengths": item.get("strengths", []),
+                    "strengths": s,
                     "weaknesses": item.get("weaknesses", []),
                     "created_at": now,
                 }

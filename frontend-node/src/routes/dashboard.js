@@ -283,9 +283,9 @@ router.get("/dashboard", requireAuth, addUserProfile, async (req, res) => {
   let { jobId, confidence, source, search } = req.query;
   const token = getAuthToken(req);
 
-  // Default to HIGH confidence if not specified
+  // Default to ALL confidence to avoid empty lists if scores are slightly below 70
   if (!confidence && jobId) {
-    confidence = 'HIGH';
+    confidence = '';
   }
 
   try {
