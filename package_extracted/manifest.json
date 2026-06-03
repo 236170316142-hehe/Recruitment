@@ -1,0 +1,13 @@
+{
+  "generatedAt": "2026-06-03T05:52:30.933Z",
+  "platform": "Windows",
+  "backendUrl": "https://eyeing.onrender.com",
+  "files": [
+    "monitor.py",
+    "install_and_run.py",
+    "requirements.txt",
+    "backend_url.txt",
+    "backend/public/setup.html",
+    "backend/public/employee-distribution.html"
+  ]
+}
