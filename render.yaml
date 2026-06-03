@@ -1,50 +1,20 @@
 services:
-  # Backend API (FastAPI)
   - type: web
-    plan: free
-    name: recruitment-backend
-    env: python
-    rootDir: backend-fastapi
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    name: employee-activity-monitor
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    healthCheckPath: /admin.html
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.10
+      - key: NODE_VERSION
+        value: 20
       - key: MONGO_URI
         sync: false
-      - key: MONGO_DB_NAME
-        value: recruitment_hub
-      - key: GROQ_API_KEY
-        sync: false
-      - key: GROQ_MODEL
-        value: llama-3.3-70b-versatile
-      - key: USE_LLM_SCORING
-        value: "true"
       - key: GOOGLE_CLIENT_ID
         sync: false
-      - key: GOOGLE_CLIENT_SECRET
+      - key: NVIDIA_API_KEY
         sync: false
-      - key: GOOGLE_REDIRECT_URI
-        value: https://recruitment-backend-vjye.onrender.com/auth/google/callback
-      - key: JWT_SECRET_KEY
-        sync: false
-      - key: JWT_ALGORITHM
-        value: HS256
-
-  # Frontend Dashboard (Node.js)
-  - type: web
-    plan: free
-    name: recruitment-frontend
-    env: node
-    rootDir: frontend-node
-    buildCommand: npm install
-    startCommand: node src/app.js
-    envVars:
-      - key: BACKEND_API_BASE
-        value: https://recruitment-backend-vjye.onrender.com
-      - key: FRONTEND_PORT
-        value: "10000"
-      - key: GOOGLE_CLIENT_ID
-        sync: false
-      - key: GOOGLE_CLIENT_SECRET
+      - key: LLM_API_KEY
         sync: false
